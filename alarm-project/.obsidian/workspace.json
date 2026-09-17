@@ -1,0 +1,241 @@
+{
+  "main": {
+    "id": "cdd7d65b451b9258",
+    "type": "split",
+    "children": [
+      {
+        "id": "9ef029b2a544affd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "691e6cc7408c78f1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "context/AGENT_INFO.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "AGENT_INFO"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9c89eabb432b6802",
+    "type": "split",
+    "children": [
+      {
+        "id": "448828506d316184",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b69e5896e1983c8a",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Filutforsker"
+            }
+          },
+          {
+            "id": "412ea3c620784fef",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Søk"
+            }
+          },
+          {
+            "id": "0274ee21a6a78f4c",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "Bokmerker"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "right": {
+    "id": "bba0e04b47d6e7fe",
+    "type": "split",
+    "children": [
+      {
+        "id": "47b1e6a58b1d1316",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bee939e75fea463e",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "context/AGENT_INFO.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Lenker tilbake"
+            }
+          },
+          {
+            "id": "d3f3ec33fc0a9f49",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "context/AGENT_INFO.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing Links"
+            }
+          },
+          {
+            "id": "9f09353ef09898e6",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tagger"
+            }
+          },
+          {
+            "id": "c2629cbaf1732d6b",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Alle egenskaper"
+            }
+          },
+          {
+            "id": "2f7aa70046aeef49",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "context/AGENT_INFO.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Disposisjon"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Åpne hurtigåpner": false,
+      "graph:Åpne grafvisning": false,
+      "canvas:Opprett ny Canvas": false,
+      "daily-notes:Åpne dagens notat": false,
+      "templates:Sett inn mal": false,
+      "command-palette:Åpne kommandovelger": false,
+      "bases:Opprett ny base": false
+    }
+  },
+  "active": "691e6cc7408c78f1",
+  "lastOpenFiles": [
+    "gently/dist/favicon.ico",
+    "gently/dist/+not-found.html",
+    "gently/dist/_sitemap.html",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/search-icon.286d67d3f74808a60a78d3ebf1a5fb57.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/close-icon.808e1b1b9b53114ec2838071a7e6daa7@4x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/close-icon.808e1b1b9b53114ec2838071a7e6daa7@3x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/close-icon.808e1b1b9b53114ec2838071a7e6daa7@2x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/close-icon.808e1b1b9b53114ec2838071a7e6daa7.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55@4x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55@3x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55@2x.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/back-icon-mask.0a328cd9c1afd0afe8e3b1ec5165b1b4.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements/clear-icon.c94f6478e7ae0cdd9f15de1fcb9e5e55.png",
+    "gently/dist/assets/node_modules/expo-router/assets/react-navigation/elements",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/500Medium_Italic/DMMono_500Medium_Italic.603b5fd55f8fb80edf0100bd02feef6c.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/500Medium/DMMono_500Medium.9471d48e180ae37ead56e619929a5a37.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/400Regular_Italic/DMMono_400Regular_Italic.aae85d57c8d3ec9a8e5d90de7379e842.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/400Regular/DMMono_400Regular.cb9880dcf9a05f61aa6aa7356a649bd2.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/300Light_Italic/DMMono_300Light_Italic.e91861c4a1a5c054c810c23861e00748.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/300Light/DMMono_300Light.2a40214f22c4de6e1579667dd5f84c6b.ttf",
+    "gently/dist/assets/node_modules/@expo-google-fonts/archivo/900Black_Italic/Archivo_900Black_Italic.88122409da770918a28e7da8b751f699.ttf",
+    "gently/STANDUP.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/@shopify/prettier-plugin-liquid/README.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/prettier-plugin-style-order/README.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/prettier-plugin-sort-imports/README.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/prettier-plugin-css-order/license.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/marko/README.md",
+    "gently/node_modules/prettier-plugin-tailwindcss/README.md",
+    "gently/node_modules/prettier/THIRD-PARTY-NOTICES.md",
+    "gently/node_modules/prettier/README.md",
+    "gently/node_modules/readdirp/node_modules/picomatch/README.md",
+    "gently/node_modules/readdirp/README.md",
+    "gently/node_modules/anymatch/node_modules/picomatch/README.md",
+    "gently/node_modules/anymatch/README.md",
+    "gently/node_modules/css-tree/node_modules/source-map/README.md",
+    "gently/node_modules/css-tree/node_modules/source-map/CHANGELOG.md",
+    "gently/node_modules/css-tree/README.md",
+    "gently/node_modules/css-tree/CHANGELOG.md",
+    "gently/node_modules/fast-glob/node_modules/glob-parent/README.md",
+    "gently/node_modules/fast-glob/node_modules/glob-parent/CHANGELOG.md",
+    "gently/node_modules/fast-glob/README.md",
+    "gently/node_modules/sucrase/node_modules/commander/Readme.md",
+    "gently/node_modules/sucrase/node_modules/commander/CHANGELOG.md",
+    "gently/node_modules/sucrase/README.md",
+    "gently/node_modules/chokidar/node_modules/glob-parent/CHANGELOG.md",
+    "gently/node_modules/chokidar/node_modules/glob-parent/README.md"
+  ]
+}

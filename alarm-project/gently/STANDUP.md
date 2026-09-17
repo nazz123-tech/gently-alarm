@@ -21,3 +21,25 @@
 - Xcode isn't installed on this Mac (`xcrun simctl` is missing), so there's no iOS simulator. You can run the app now with Expo Go on your iPhone (`npm start`, scan the QR code). Xcode will be required from step 9 (AlarmKit and the Live Activity).
 
 **Next:** step 2, design tokens (sunrise palette, gradients, typography) in `src/theme`.
+
+## Step 2: Design tokens (2026-09-17)
+
+**Done**
+- `src/theme/palette.js` — the whole colour palette from `context/lock-screen-prototype.html` (dark values, since the app is dark-only). Plain JS on purpose: `tailwind.config.js` runs in Node and can't import TypeScript, so this one file feeds both sides and the two can't drift.
+- `src/theme/colors.ts` — the typed view of that palette, for colours that have to be a prop instead of a class.
+- `src/theme/gradients.ts` — the three sunrise skies (`night`, `dawn`, `day`) plus the snooze button fill, shaped so they spread straight onto `<LinearGradient {...gradients.sky.night} />`. CSS percentages converted to the 0–1 `locations` expo-linear-gradient wants; `180deg` became `start`/`end` top-to-bottom.
+- `src/theme/typography.ts` — the two families and 11 text styles from the prototype. CSS `em` tracking and unitless line heights converted to the points React Native needs (e.g. `.18em` at 11px → `1.98`).
+- `src/theme/index.ts` — one import point: `import { colors, gradients, textStyles } from '@/theme'`.
+- `tailwind.config.js` — palette registered as NativeWind classes (`bg-surface-base`, `text-ink-primary`, `text-onSky-text/70`), plus the three tracking values.
+- Replaced the step-1 placeholder screen with a token preview: the sunrise gradient behind the clock, and three chips to switch between night/dawn/day.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform web`: builds, and the palette compiles to CSS (`.bg-surface-screen`, `.text-onSky-text/70` with the right rgb values)
+- Metro hot-reloaded the new screen onto the iPhone over Expo Go with no errors
+
+**Notes / blockers**
+- None. Expo login is done (`nazarism`), so the dev server shows up in Expo Go under "Development servers" without scanning the QR code.
+- The prototype also has a light palette. Not ported — the app is dark-only for now, and it's a small addition to `palette.js` if that changes.
+
+**Next:** step 3, the dot-grid digits component (`src/components`), which the locked clock is built from.
