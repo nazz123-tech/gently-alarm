@@ -191,6 +191,8 @@
   },
   "active": "691e6cc7408c78f1",
   "lastOpenFiles": [
+    "gently/src/components/DotClock.tsx",
+    "gently/src/lib/dotFont.ts",
     "gently/dist/favicon.ico",
     "gently/dist/+not-found.html",
     "gently/dist/_sitemap.html",
@@ -210,8 +212,6 @@
     "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/400Regular_Italic/DMMono_400Regular_Italic.aae85d57c8d3ec9a8e5d90de7379e842.ttf",
     "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/400Regular/DMMono_400Regular.cb9880dcf9a05f61aa6aa7356a649bd2.ttf",
     "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/300Light_Italic/DMMono_300Light_Italic.e91861c4a1a5c054c810c23861e00748.ttf",
-    "gently/dist/assets/node_modules/@expo-google-fonts/dm-mono/300Light/DMMono_300Light.2a40214f22c4de6e1579667dd5f84c6b.ttf",
-    "gently/dist/assets/node_modules/@expo-google-fonts/archivo/900Black_Italic/Archivo_900Black_Italic.88122409da770918a28e7da8b751f699.ttf",
     "gently/STANDUP.md",
     "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/@shopify/prettier-plugin-liquid/README.md",
     "gently/node_modules/prettier-plugin-tailwindcss/dist/licenses/prettier-plugin-style-order/README.md",

@@ -43,3 +43,25 @@
 - The prototype also has a light palette. Not ported — the app is dark-only for now, and it's a small addition to `palette.js` if that changes.
 
 **Next:** step 3, the dot-grid digits component (`src/components`), which the locked clock is built from.
+
+## Step 3: Dot-grid clock (2026-09-17)
+
+**Done**
+- `src/lib/dotFont.ts` — the 5x7 dot font from the prototype: digits, `:` and space. Each glyph is 7 strings of `0`/`1`. The colon is 1 column wide, not 5, so time reads `9:01` and not `9 : 01`. `glyphFor()` falls back to a space for any character we have no glyph for, so an unexpected character leaves a gap instead of crashing the clock. `columnsFor()` works out the grid width including the 1-column gaps.
+- `src/components/DotClock.tsx` — draws the grid with `react-native-svg`. Both lit and unlit dots are drawn; the faint unlit ones are what make it read as a real dot-matrix display.
+- `src/lib/time.ts` — `formatCountdown()` (`h:mm:ss`, hour unpadded) and `formatClock()` (`h:mm`), matching the prototype's `hms()` and `clock()`. Only characters the dot font can draw.
+- `src/theme/palette.js` — added `dot.on` / `dot.off`.
+- Preview screen now runs a live countdown in dots over the sunrise gradient, with a chip to collapse it to the plain alarm time (the prototype's 86% / 52% widths).
+
+**The one thing worth explaining**
+The prototype draws on a `<canvas>`: it measures the element in pixels, divides by the number of columns to get a `pitch`, then multiplies every dot position by it. The SVG version skips all of that — the `viewBox` is measured in grid cells, one unit per cell, so a dot's centre is just `(column + 0.5, row + 0.5)` and the SVG scales itself to whatever width it's given. Same picture, no pixel maths, and it stays sharp at any size.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build
+- Rendered the font to ASCII in a scratch script to check the grid maths: `9:01` draws correctly and `columnsFor()` returns 19, matching the columns actually drawn. `columnsFor('')` is 0, and the component renders nothing rather than an invalid zero-width viewBox.
+
+**Notes / blockers**
+- None. The clock ticks once a second and redraws ~190 circles; smooth in Expo Go. If it ever costs too much, the fix is to redraw only the dots that changed.
+
+**Next:** step 4, the lock-screen layout — status bar, the chevron, the sub-line and the bottom tray (slide-to-stop, mute).

@@ -60,6 +60,15 @@ const palette = {
   },
 
   /**
+   * The dot-grid clock. Every cell of the 5x7 grid is drawn, lit or unlit —
+   * the faint unlit dots are what make it read as a physical display.
+   */
+  dot: {
+    on: 'rgba(255,248,240,0.96)',
+    off: 'rgba(255,255,255,0.055)',
+  },
+
+  /**
    * Controls drawn on top of the sky. Over a gradient we tint white rather
    * than use a solid, so the sunrise still reads through the control.
    */
