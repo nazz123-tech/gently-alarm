@@ -85,6 +85,13 @@ export const textStyles = {
     fontSize: 11.5,
     letterSpacing: 0.46,
   },
+  /** The short note after the alarm stops — prototype `#extra p`. */
+  note: {
+    fontFamily: fontFamily.mono,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    lineHeight: 17,
+  },
   /** Pill buttons in a row of choices — `.seg button`. */
   chipLabel: {
     fontFamily: fontFamily.sansMedium,

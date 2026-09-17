@@ -12,6 +12,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+import { colors } from '@/theme';
 
 // Keep the splash screen visible until the fonts are ready.
 SplashScreen.preventAutoHideAsync();
@@ -36,10 +39,17 @@ export default function RootLayout() {
     return null;
   }
 
+  // expo-router does not provide GestureHandlerRootView, and the slide-to-stop
+  // control needs one above it, so it goes here at the root.
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0A0605' } }} />
-    </>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.surface.screen },
+        }}
+      />
+    </GestureHandlerRootView>
   );
 }

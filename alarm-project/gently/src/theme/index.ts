@@ -17,5 +17,9 @@ export type { Colors } from './colors';
 export { gradients, sky, snoozeButton } from './gradients';
 export type { SkyState } from './gradients';
 
+export { GRAIN_OPACITY, GRAIN_PITCH } from './effects';
+
+export { BREATHE_MS, CHEVRON_TURN_MS, SKY_FADE_MS, SLIDE_RETURN_MS } from './motion';
+
 export { fontFamily, textStyles } from './typography';
 export type { TextStyleName } from './typography';

@@ -25,3 +25,17 @@ export function formatCountdown(totalSeconds: number): string {
 export function formatClock(date: Date): string {
   return `${date.getHours()}:${pad(date.getMinutes())}`;
 }
+
+/**
+ * Snooze time left, as `mm:ss` — the prototype shows `09:00` counting down.
+ * Minutes are padded here, unlike the countdown, because it never reaches an
+ * hour and `09:00` lines up better than `9:00` as the digits change.
+ */
+export function formatSnooze(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+
+  const minutes = Math.floor(safe / 60);
+  const seconds = safe % 60;
+
+  return `${pad(minutes)}:${pad(seconds)}`;
+}

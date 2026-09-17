@@ -65,3 +65,68 @@ The prototype draws on a `<canvas>`: it measures the element in pixels, divides 
 - None. The clock ticks once a second and redraws ~190 circles; smooth in Expo Go. If it ever costs too much, the fix is to redraw only the dots that changed.
 
 **Next:** step 4, the lock-screen layout — status bar, the chevron, the sub-line and the bottom tray (slide-to-stop, mute).
+
+## Step 4: Lock-screen layout (2026-09-17)
+
+**Done**
+- `src/components/SkyBackground.tsx` — all three skies mounted and stacked, cross-faded on opacity like the prototype. Night sits underneath and never fades, so the screen can't flash empty mid-transition.
+- `src/components/Grain.tsx` — the fine speckle over the gradient, so a big smooth sunrise doesn't band on an OLED screen.
+- `src/components/IconButton.tsx` — the round translucent button both the chevron and the mute button are built on.
+- `src/components/icons.tsx` — chevron and the two speaker icons, exact paths from the prototype. Small enough to keep inline instead of adding an icon library.
+- `src/components/CollapseButton.tsx` — swaps the running countdown for the plain alarm time; the arrow turns over.
+- `src/components/MuteButton.tsx` — mutes the soundscape without stopping the alarm.
+- `src/components/SubLine.tsx` — the "Soft Rain · 7:30 – 8:00" line with the small dot separator.
+- `src/components/SlideToStop.tsx` — drag to the right to stop.
+- `src/theme/motion.ts` and `src/theme/effects.ts` — the animation durations and the grain values, so nothing is hard-coded in a component.
+- `src/app/_layout.tsx` — added `GestureHandlerRootView` at the root. expo-router does not provide one and the drag needs it.
+- `src/app/index.tsx` — the pieces assembled into the real layout.
+
+**Three decisions worth knowing**
+1. **No fake status bar, dynamic island or home indicator.** The prototype draws a phone mock inside a browser, so it has to fake those. On a real phone iOS draws them itself — rebuilding them would mean two status bars on top of each other. `SafeAreaView` keeps our content clear of them instead.
+2. **The drag is tracked on the UI thread.** Progress lives in a Reanimated shared value that the gesture writes to directly, so the fill follows the finger instead of lagging a frame behind. Only `onStop` crosses back into React.
+3. **Stopping needs 78% of the track**, straight from the prototype — far enough that a hand brushing the screen half asleep can't silence the alarm.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean, no warnings (iOS is now 1749 modules, up from 1570 — that's gesture-handler and reanimated coming in)
+- Confirmed against the v57 docs that `babel-preset-expo` wires up the Reanimated plugin automatically, so `babel.config.js` needs no change
+
+**Not verified**
+- Nothing here has been seen running. There is no iOS simulator on this Mac and the dev server is in your terminal, so the gesture feel, the cross-fade timing and the grain are all compile-checked only — they need your eyes on the phone.
+
+**Two knowing differences from the prototype**
+- The "Slide to stop" label does not have the shimmer sweeping across it. That's a CSS `background-clip:text` animation with no cheap React Native equivalent; it fades as the fill passes under it instead, which is what the prototype itself falls back to under reduced motion.
+- The buttons don't blur what's behind them (`backdrop-filter`). That needs `expo-blur`, which isn't installed — the white tint reads cleanly enough over a gradient. Easy to add later if you want it.
+
+**Next:** step 5, the alarm state machine — armed, wake window, ringing, snoozed, stopped — including the breathing dot and the snooze button.
+
+## Step 5: Alarm states (2026-09-17)
+
+**Done**
+- `src/lib/alarm.ts` — the five states (`armed`, `window`, `ringing`, `snoozed`, `stopped`), the alarm constants, and `describeScreen()`.
+- `src/components/BreathingDot.tsx` — the slow pulsing dot during the wake window.
+- `src/components/SnoozeButton.tsx` — the warm pill under the clock while ringing.
+- `src/lib/time.ts` — added `formatSnooze()` (`mm:ss`).
+- `src/theme/` — added `BREATHE_MS` and a `note` text style.
+- `src/app/index.tsx` — now holds the state, one ticker, and what the buttons do. Nothing else.
+
+**How it's kept simple**
+`describeScreen()` is one `switch` that returns a plain object — label, clock, clock size, sub-line, sky, and whether the chevron and tray show. To change how a state looks you edit one block and nothing else in the app needs to know. The screen file just reads that object, so there are no `state === 'ringing' ? ... : ...` chains scattered through the layout. The switch has no `default` on purpose: because every case returns, adding a sixth state becomes a compile error instead of a silently blank screen.
+
+There is one ticker for the whole screen, not one per state, and it only runs in the two states that actually count down.
+
+**Two bugs found and fixed while writing it**
+- Jumping straight to `snoozed` from the state picker bounced instantly back to `ringing`, because the snooze clock was still at zero and the "snooze finished" check fired immediately. `goTo()` now puts time on the clock on the way in.
+- After three snoozes the sub-line read "Snooze 4 of 3". The count is capped now. The prototype has the same bug.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean, no warnings
+
+**Not verified**
+- Again, not seen running — no simulator here. Worth checking on the phone: that the snooze countdown reaches zero and rings again, that all five states look right, and that the breathing dot's glow shows up (it uses an iOS-only coloured shadow).
+
+**Note**
+- The state picker row is still temporary scaffolding, same as the prototype's row of buttons under the phone. It comes out once alarms can really be scheduled.
+
+**Next:** step 6, the alarm setup screen — the rotary time picker from `context/Gradual-Awakening-Rotary-Awakening-Setup-2.png`.
