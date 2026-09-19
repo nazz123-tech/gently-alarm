@@ -1073,3 +1073,114 @@ through, so resuming would have started it in the middle of a beep.
 
 **Checks**
 - `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 16: The lock screen was pinned to "armed" (2026-09-19)
+
+Setting an alarm inside the next half hour and opening the lock screen showed a
+countdown and played nothing, when the wake window had already started.
+
+**The cause was the link, not the lock screen.** The "Lock screen" link passed
+`state: 'armed'`, and that parameter *forces* a state — it exists so "Test fade"
+can jump into the window. Forcing "armed" overrode everything the lock screen
+works out from the clock. The lock screen itself was right all along; it was
+never being allowed to decide.
+
+The link no longer passes a state. "Test fade" still does, because skipping the
+wait is the whole point of it.
+
+| alarm in | state | step | level | sound |
+| --- | --- | --- | --- | --- |
+| 40 min | armed | – | – | silent |
+| 29 min | window | 1 | 10% | bed |
+| 20 min | window | 2 | 52% | bed |
+| 10 min | window | 3 | 78% | bed + chime |
+| 3 min | window | 4 | 94% | bed + chime |
+| 0 min | ringing | 5 | 100% | bed + alarm |
+
+**The window line now names the step.** It read `Soft Rain · 65%`; it reads
+`Soft Rain · step 3 of 5 · 65%`. A percentage alone does not say where you are
+in a sequence the app page describes in five named steps.
+
+**And the app page says when the window is already running.** Setting an alarm
+for twenty minutes from now is not "in twenty minutes" — the window opened ten
+minutes ago and the soundscape is playing. `NextAwakening` shows a notice
+naming the step, so this is visible where the alarm is set rather than only
+after opening the lock screen.
+
+`stepOfProgress` in `cycle.ts` is the inverse of `progressOfStep`, so the step
+shown on both screens comes from the same division as the times, the levels and
+the layer entry points. Step 5 is reached only at the alarm itself, which is
+correct — step 5 *is* the alarm.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 16a: The notice grows instead of appearing (2026-09-19)
+
+The "waking has already begun" notice was mounted and unmounted outright, so
+the moment the dial crossed the half-hour mark a block of text appeared and
+shoved everything below it down. Mid-drag that does not read as a message
+arriving — it reads as the dial stuttering.
+
+**Done**
+- The notice is always mounted now. A single shared value drives its height and
+  its opacity together, so it grows and fades over `NOTICE_FADE_MS` (260ms)
+  instead of snapping in and out. Nothing below it jumps.
+- Its height is measured from the text with `onLayout` rather than guessed, so
+  the animation is right whatever the copy wraps to.
+- `pointerEvents="none"`, since it is informational and should not take touches
+  while collapsed.
+
+**Why it is smoother as well as prettier:** crossing the boundary used to mount
+a whole subtree and relayout the page, on a drag that can cross it repeatedly.
+Now the subtree stays put and only two animated values change, on the UI thread.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 16b: The notice height was wrong twice (2026-09-19)
+
+The grow-and-fade still looked bad. Two measurement faults, not animation ones.
+
+**1. It popped on first appearance.** `noticeHeight` went from 0 to its real
+value in one step while `shown` was already 1, so the height changed in a single
+frame. The animation now waits until the text has been measured, so there is
+always something real to ease towards.
+
+**2. The margin was never counted.** The gap above the card was `mt-3`, a
+margin — and `onLayout` reports the border box, not margins. So the animated
+height was permanently 12px short of what the notice occupied, and that 12px of
+empty space stayed on the page when the notice was collapsed. The gap is
+padding on the measured box now.
+
+**Risk worth knowing:** the content is measured inside a container whose height
+animates to zero. If `onLayout` ever reported 0 there, the guard added for
+fault 1 would hide the notice permanently — a worse failure than the pop. This
+is the standard React Native collapse pattern and should measure correctly, but
+if the notice ever fails to appear at all, that is the cause, and the fix is to
+measure outside the clipped container.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 16c: Notice dropped, link disabled instead (2026-09-19)
+
+The "waking has already begun" notice is gone, along with the height animation
+it needed and `NOTICE_FADE_MS`. `NextAwakening` is back to the time and the
+pause switch, and nothing else.
+
+The same validation now shows up as state on the control rather than as a
+message: while the wake window is already running, the **Lock screen** link is
+disabled and dimmed. Opening it then would drop you into the middle of a waking
+sequence, which is a surprising place to land from a settings page.
+
+**Test fade stays enabled**, since its whole job is to run a window on demand
+regardless of what the real alarm is doing.
+
+Two rounds of fighting a height animation ended with the feature not needing
+one. Worth remembering before reaching for an animated collapse again: a
+message that has to animate in and out of a layout is often a sign the
+information belongs on a control instead.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean

@@ -17,6 +17,7 @@ import {
   snoozeButtonLabel,
   type AlarmState,
 } from '@/lib/alarm';
+import { CYCLE_LENGTH, stepOfProgress } from '@/lib/cycle';
 import { levelAt } from '@/lib/ramp';
 import { timeOfDay } from '@/lib/schedule';
 import { findSoundscape } from '@/lib/soundscapes';
@@ -141,6 +142,8 @@ export default function LockScreen() {
     snoozesUsed,
     windowLevelPercent: Math.round(levelAt(windowProgress) * 100),
     minutesIntoWindow: Math.max(0, Math.round((now - windowStart) / MINUTE)),
+    windowStep: stepOfProgress(windowProgress),
+    windowStepCount: CYCLE_LENGTH,
   });
 
   // The soundscape fades up across the window; the alarm rings under it.

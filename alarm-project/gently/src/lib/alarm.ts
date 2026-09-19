@@ -70,6 +70,10 @@ type ScreenInput = {
   windowLevelPercent: number;
   /** How far into the wake window we are, in whole minutes. */
   minutesIntoWindow: number;
+  /** Which of the five steps the window is on. */
+  windowStep: number;
+  /** How many steps there are. */
+  windowStepCount: number;
 };
 
 /**
@@ -88,6 +92,8 @@ export function describeScreen({
   snoozesUsed,
   windowLevelPercent,
   minutesIntoWindow,
+  windowStep,
+  windowStepCount,
 }: ScreenInput): ScreenContent {
   switch (state) {
     case 'armed':
@@ -105,7 +111,11 @@ export function describeScreen({
         label: 'Waking you gently',
         clock: alarmLabel,
         clockSize: 'small',
-        sub: [soundscapeName, `${windowLevelPercent}%`],
+        sub: [
+          soundscapeName,
+          `step ${windowStep} of ${windowStepCount}`,
+          `${windowLevelPercent}%`,
+        ],
         sky: 'dawn',
         showTray: true,
       };

@@ -67,6 +67,15 @@ export function progressOfStep(index: number): number {
 }
 
 /**
+ * Which step the window is on, numbered 1 to `CYCLE_LENGTH` for showing to a
+ * person. The inverse of `progressOfStep`.
+ */
+export function stepOfProgress(progress: number): number {
+  const p = Math.min(1, Math.max(0, progress));
+  return Math.min(CYCLE_LENGTH, Math.floor(p * (CYCLE_LENGTH - 1)) + 1);
+}
+
+/**
  * Works out when each step happens and what it is called.
  *
  * The last step is the wake time itself and the first is a whole window

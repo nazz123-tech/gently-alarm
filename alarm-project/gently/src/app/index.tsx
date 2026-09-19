@@ -65,6 +65,17 @@ export default function AppPage() {
   // worked out from this against the real clock.
   const nextAlarm = nextAlarmAt(now, wakeTimes);
 
+  /**
+   * Whether the wake window has already opened.
+   *
+   * The window runs for the half hour *before* the alarm, so a time set less
+   * than that away is not "coming up" — it is already under way. Opening the
+   * lock screen then drops you into the middle of a waking sequence, so the
+   * link is switched off rather than leading somewhere surprising.
+   */
+  const windowRunning =
+    !paused && (nextAlarm.getTime() - now.getTime()) / 60_000 < WAKE_WINDOW_MINUTES;
+
   const dayLabel = WEEKDAY_LABELS[selectedWeekday];
   const selectedWakeMinutes = wakeTimes[selectedWeekday];
 
@@ -121,26 +132,55 @@ export default function AppPage() {
               runs the same fade over one minute instead of thirty, which is the
               only way to hear the quiet opening without sitting through it. */}
           <View className="flex-row gap-5">
-            {(['armed', 'window'] as const).map((openAs) => (
+            {/* No `state` here on purpose. The lock screen works out what it
+                should be showing from the clock, and forcing one would pin it
+                to "armed" even when the wake window had already started. */}
+            {windowRunning ? (
+              <Text
+                style={textStyles.chipLabel}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: true }}
+                className="text-ink-muted/40">
+                Lock screen
+              </Text>
+            ) : (
               <Link
-                key={openAs}
                 href={{
                   pathname: '/lock',
                   params: {
                     soundscape: soundscapeId,
                     level: String(level),
-                    state: openAs,
                     alarmAt: String(nextAlarm.getTime()),
                   },
                 }}
                 asChild>
                 <Pressable accessibilityRole="button" hitSlop={8}>
                   <Text style={textStyles.chipLabel} className="text-ink-secondary">
-                    {openAs === 'armed' ? 'Lock screen' : 'Test fade · 1 min'}
+                    Lock screen
                   </Text>
                 </Pressable>
               </Link>
-            ))}
+            )}
+
+            {/* This one does force it, because the whole point is to skip the
+                waiting and run the fade over a minute. */}
+            <Link
+              href={{
+                pathname: '/lock',
+                params: {
+                  soundscape: soundscapeId,
+                  level: String(level),
+                  alarmAt: String(nextAlarm.getTime()),
+                  state: 'window',
+                },
+              }}
+              asChild>
+              <Pressable accessibilityRole="button" hitSlop={8}>
+                <Text style={textStyles.chipLabel} className="text-ink-secondary">
+                  Test fade · 1 min
+                </Text>
+              </Pressable>
+            </Link>
           </View>
         </View>
       </ScrollView>
