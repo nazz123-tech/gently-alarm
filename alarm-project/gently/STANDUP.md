@@ -1004,3 +1004,72 @@ describes.
 - Whether the chime is at the right level against each bed, and whether the warm
   tone reads as "ready when you are" or as an interruption. The numbers put them
   where they should be; only listening can say whether they belong there.
+
+## Step 15: expo-doctor green, and the warm tone repeats (2026-09-19)
+
+**expo-doctor: 21/21.** `npx expo install --fix` brought `expo` to ~57.0.24,
+`expo-asset` to ~57.0.17, `expo-constants` to ~57.0.18 and `expo-router` to
+~57.0.22 — the patch drift parked back in step 9d, held while the dial lag was
+being diagnosed so the measurement was not polluted. That diagnosis is long
+finished, so it is cleared.
+
+**The warm tone was mostly nothing.** The file ran 2.12s but only the first
+0.55s was audible; the rest was decay below hearing. Recut from the source to
+**0.71s** — one lossy generation, not two — and mastered to -26 dBFS.
+
+**It now sounds four times instead of once**, between step 4 and the alarm:
+
+| | progress | minute | in the 1-minute preview |
+| --- | --- | --- | --- |
+| 1st | 0.750 | 22.5 | 45s |
+| 2nd | 0.813 | 24.4 | 49s |
+| 3rd | 0.875 | 26.3 | 53s |
+| 4th | 0.938 | 28.1 | 56s |
+| alarm | 1.000 | 30.0 | 60s |
+
+A single note near the end was easy to sleep through and easy to miss entirely.
+Four turns the last stretch into a series of nudges, which is the job that step
+was always described as doing. The count is tracked rather than a flag, so a
+note is never repeated if the effect runs twice at the same progress.
+
+**One reference for everything.** The chime was re-mastered to -26 dBFS too, so
+beds and layers now share a single level. Before this, the layer gains in code
+were doing two jobs at once — correcting each file's own level *and* setting how
+far under the bed it sits. They are purely musical now: chime 8 dB under the
+bed, warm tone 6 dB, both scaling with the ramp.
+
+**Checks**
+- `npx expo-doctor`: 21/21, `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds clean, all eight audio files in the
+  bundle by MD5
+
+## Step 15a: Two sounds that never played (2026-09-19)
+
+Four warm tones were scheduled and two were heard, and the alarm never arrived
+at 100%. Two separate faults.
+
+**1. The preview had no ending.** Opening with `state=window` forces that state,
+and forcing it never stopped — progress reached 1.0 and simply held there, so
+`ringing` was never true and the alarm never fired. The thing the entire ramp
+builds towards could not happen in the one mode built for hearing the ramp. The
+preview now moves to `ringing` when it reaches the end of the window.
+
+Worth noting this was only ever broken in preview. A real alarm reaches
+`ringing` from the clock, which was working.
+
+**2. `seekTo` is asynchronous and I treated it as if it were not.**
+
+    warmTone.seekTo(0);   // a promise, not yet done
+    warmTone.play();      // starts from wherever the player still is
+
+The first note played because the player was already at the start. Every note
+after that found the player sitting at the end of the file, so `play()` resumed
+from the end and produced silence. Which notes survived depended on timing,
+which is why it was two rather than a consistent number.
+
+Both the warm tone and the alarm now wait for the rewind before playing. The
+alarm had the same latent fault: after a snooze its player is paused part-way
+through, so resuming would have started it in the middle of a beep.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean

@@ -28,16 +28,26 @@ const WARM_TONE_AT = progressOfStep(WARM_TONE_STEP);
 const CHIME_FADE = 0.1;
 
 /**
+ * How many times the warm tone sounds between step 4 and the alarm, and how
+ * far apart.
+ *
+ * One note near the end was easy to sleep straight through, and easy to miss
+ * entirely. A handful of them turns the last stretch into a series of nudges,
+ * which is the job that step is meant to do.
+ */
+const WARM_TONE_REPEATS = 4;
+const WARM_TONE_EVERY = (1 - WARM_TONE_AT) / WARM_TONE_REPEATS;
+
+/**
  * Both layers as a share of the bed's current volume.
  *
- * Measured, not guessed: both files sit about 4 dB hotter than the beds, which
- * were matched to -26 dBFS. Left alone they would play over the top of the
- * soundscape rather than inside it. These figures put the chime around 8 dB
- * under the bed and the warm tone around 6 dB under, the file's own level
- * already accounted for.
+ * Every file — beds and layers alike — is mastered to the same -26 dBFS, so
+ * these are purely musical: the chime sits about 8 dB under the bed and the
+ * warm tone about 6 dB, and both scale with the bed so they rise with the ramp
+ * rather than sitting at a fixed level.
  */
-const CHIME_GAIN = 0.24;
-const WARM_TONE_GAIN = 0.31;
+const CHIME_GAIN = 0.4;
+const WARM_TONE_GAIN = 0.5;
 
 /**
  * The quietest the soundscape is allowed to get, as a share of the chosen
@@ -78,8 +88,8 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
   const warmTone = useAudioPlayer(WARM_TONE);
   const alarm = useAudioPlayer(WAKE_ALARM);
 
-  /** The warm tone sounds once, so it needs to know it has already been heard. */
-  const warmTonePlayed = useRef(false);
+  /** How many warm tones have sounded so far in this window. */
+  const warmTonesPlayed = useRef(0);
 
   // Both loop: the soundscape runs for the length of the window, and the alarm
   // rings until it is stopped.
@@ -118,7 +128,7 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
     if (progress === null) {
       bed.pause();
       chime.pause();
-      warmTonePlayed.current = false;
+      warmTonesPlayed.current = 0;
       return;
     }
 
@@ -138,12 +148,25 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
       chime.pause();
     }
 
-    // Step 4: the warm tone is a single note, not a layer, so it sounds once.
-    if (progress >= WARM_TONE_AT && !warmTonePlayed.current) {
-      warmTonePlayed.current = true;
+    // Step 4: short notes rather than a layer, spaced out on the way to the
+    // alarm. Counting them means a note is never repeated if the effect runs
+    // twice at the same progress.
+    const tonesDue = Math.min(
+      WARM_TONE_REPEATS,
+      Math.floor((progress - WARM_TONE_AT) / WARM_TONE_EVERY) + 1,
+    );
+
+    if (tonesDue > warmTonesPlayed.current) {
+      warmTonesPlayed.current = tonesDue;
       warmTone.volume = WARM_TONE_GAIN * bedVolume;
-      warmTone.seekTo(0);
-      warmTone.play();
+
+      // `seekTo` is asynchronous. Calling `play` on the next line starts the
+      // player wherever it happens to be, which after the first note is the
+      // end of the file — so the note is silent. Wait for the rewind first.
+      warmTone
+        .seekTo(0)
+        .then(() => warmTone.play())
+        .catch(() => {});
     }
   }, [bed, chime, warmTone, progress, maxVolume]);
 
@@ -151,7 +174,14 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
   useEffect(() => {
     if (ringing) {
       alarm.volume = 1;
-      alarm.play();
+
+      // Rewound first, for the same reason as the warm tone: after a snooze
+      // the player is paused part-way through, and resuming there would start
+      // the alarm in the middle of a beep.
+      alarm
+        .seekTo(0)
+        .then(() => alarm.play())
+        .catch(() => {});
     } else {
       alarm.pause();
     }

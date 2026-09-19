@@ -117,7 +117,13 @@ export default function LockScreen() {
     const startedAt = Date.now();
     const step = setInterval(() => {
       const elapsed = (Date.now() - startedAt) / 1000;
-      setPreviewProgress(Math.min(1, elapsed / PREVIEW_WINDOW_SECONDS));
+      const reached = Math.min(1, elapsed / PREVIEW_WINDOW_SECONDS);
+      setPreviewProgress(reached);
+
+      // The window ends at the alarm. Without this the preview stopped at
+      // 100% and simply held there, so the thing the whole ramp builds up to
+      // never actually happened.
+      if (reached >= 1) setPreview('ringing');
     }, 250);
 
     return () => clearInterval(step);
