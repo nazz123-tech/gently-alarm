@@ -49,7 +49,22 @@ export const CYCLE_LEVELS = SHAPE.map((step) => step.level);
 
 /** Which steps take their name from the soundscape. */
 const BED_STEP = 1;
-const CHIME_STEP = 2;
+
+/** The step where the chime comes in over the bed. */
+export const CHIME_STEP = 2;
+
+/** The step where the warm tone sounds. */
+export const WARM_TONE_STEP = 3;
+
+/**
+ * Where a step sits in the wake window, 0 at the start and 1 at the alarm.
+ *
+ * The steps are evenly spaced, so this is the same division the times and the
+ * level ramp use — the sounds arrive exactly where the list says they do.
+ */
+export function progressOfStep(index: number): number {
+  return index / (CYCLE_LENGTH - 1);
+}
 
 /**
  * Works out when each step happens and what it is called.

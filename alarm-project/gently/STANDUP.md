@@ -958,3 +958,49 @@ way, so it costs nothing but disk.
 
 **Checks**
 - `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 14: The chime and warm tone layers (2026-09-19)
+
+The cycle has always described five steps; until now the sound was one bed
+fading up. Steps 3 and 4 are real now, and every asset in `assets/sounds/` is
+referenced.
+
+**Where they land**, derived from `progressOfStep` in `cycle.ts` rather than
+typed in — the same division the times and the level ramp already use, so the
+sounds arrive exactly where the list on the app page says they do:
+
+| step | progress | minute | level | what happens |
+| --- | --- | --- | --- | --- |
+| 01 | 0.00 | 0 | 5% | soundscape alone, barely there |
+| 02 | 0.25 | 8 | 45% | soundscape settling in |
+| 03 | 0.50 | 15 | 65% | **chime fades in over it** |
+| 04 | 0.75 | 23 | 85% | **warm tone sounds once** |
+| 05 | 1.00 | 30 | 100% | alarm joins |
+
+**The chime loops, the warm tone does not.** The chime is a layer that stays for
+the rest of the window, fading in over a tenth of it rather than appearing. The
+warm tone is a single note — it plays once and is flagged so it cannot repeat,
+and the flag is cleared when the window ends.
+
+**Both layers had to be turned down, and the figure is measured rather than
+guessed.** Both files sit about 4 dB hotter than the beds, which were matched to
+-26 dBFS. Left alone they would have played over the top of the soundscape
+instead of inside it. The chime now sits about 8 dB under the bed and the warm
+tone about 6 dB, and both scale with the bed's current volume so they rise with
+everything else rather than being fixed.
+
+**The soundscape no longer stops when the alarm starts.** Ringing passed
+`progress: null`, which paused the bed and the chime — so four steps of not
+startling anybody ended with the sound cutting out and a beep. Ringing now holds
+the ramp at the top and the alarm joins it, which is what step 5 of the list
+describes.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds clean, and all eight audio files
+  confirmed in the bundle by MD5 — nothing is unreferenced any more
+
+**Not verified**
+- Whether the chime is at the right level against each bed, and whether the warm
+  tone reads as "ready when you are" or as an interruption. The numbers put them
+  where they should be; only listening can say whether they belong there.

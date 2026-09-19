@@ -1,6 +1,7 @@
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useEffect, useRef } from 'react';
 
+import { CHIME_STEP, WARM_TONE_STEP, progressOfStep } from '@/lib/cycle';
 import { levelAt } from '@/lib/ramp';
 
 /**
@@ -15,7 +16,28 @@ const BEDS = {
   fireplace: require('@/assets/sounds/bed_fireplace.m4a'),
 };
 
+const CHIME = require('@/assets/sounds/layer_chime.m4a');
+const WARM_TONE = require('@/assets/sounds/step_warm_tone.m4a');
 const WAKE_ALARM = require('@/assets/sounds/step_wake_alarm.m4a');
+
+/** Where in the window the two layers arrive — step 3 and step 4 of five. */
+const CHIME_AT = progressOfStep(CHIME_STEP);
+const WARM_TONE_AT = progressOfStep(WARM_TONE_STEP);
+
+/** How much of the window the chime takes to reach full level. */
+const CHIME_FADE = 0.1;
+
+/**
+ * Both layers as a share of the bed's current volume.
+ *
+ * Measured, not guessed: both files sit about 4 dB hotter than the beds, which
+ * were matched to -26 dBFS. Left alone they would play over the top of the
+ * soundscape rather than inside it. These figures put the chime around 8 dB
+ * under the bed and the warm tone around 6 dB under, the file's own level
+ * already accounted for.
+ */
+const CHIME_GAIN = 0.24;
+const WARM_TONE_GAIN = 0.31;
 
 /**
  * The quietest the soundscape is allowed to get, as a share of the chosen
@@ -52,12 +74,18 @@ type WakeSoundOptions = {
  */
 export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: WakeSoundOptions) {
   const bed = useAudioPlayer(bedFor(soundscapeId));
+  const chime = useAudioPlayer(CHIME);
+  const warmTone = useAudioPlayer(WARM_TONE);
   const alarm = useAudioPlayer(WAKE_ALARM);
+
+  /** The warm tone sounds once, so it needs to know it has already been heard. */
+  const warmTonePlayed = useRef(false);
 
   // Both loop: the soundscape runs for the length of the window, and the alarm
   // rings until it is stopped.
   useEffect(() => {
     bed.loop = true;
+    chime.loop = true;
     alarm.loop = true;
 
     // An alarm that respects the mute switch is not an alarm. This is also why
@@ -68,7 +96,7 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
       shouldPlayInBackground: true,
       interruptionMode: 'doNotMix',
     }).catch(() => {});
-  }, [bed, alarm]);
+  }, [bed, chime, alarm]);
 
   // Swapping the soundscape swaps the file under the same player.
   //
@@ -85,18 +113,39 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
     bed.replace(bedFor(soundscapeId));
   }, [bed, soundscapeId]);
 
-  // The soundscape follows the ramp.
+  // The soundscape follows the ramp, and the two layers ride on top of it.
   useEffect(() => {
     if (progress === null) {
       bed.pause();
+      chime.pause();
+      warmTonePlayed.current = false;
       return;
     }
 
     // Rescaled so the quietest point is QUIETEST rather than zero, and the
     // loudest is still exactly the level chosen on the app page.
-    bed.volume = (QUIETEST + (1 - QUIETEST) * levelAt(progress)) * maxVolume;
+    const bedVolume = (QUIETEST + (1 - QUIETEST) * levelAt(progress)) * maxVolume;
+    bed.volume = bedVolume;
     if (!bed.playing) bed.play();
-  }, [bed, progress, maxVolume]);
+
+    // Step 3: the chime fades in over the bed and stays for the rest.
+    const chimeIn = Math.min(1, Math.max(0, (progress - CHIME_AT) / CHIME_FADE));
+    chime.volume = chimeIn * CHIME_GAIN * bedVolume;
+
+    if (chimeIn > 0) {
+      if (!chime.playing) chime.play();
+    } else {
+      chime.pause();
+    }
+
+    // Step 4: the warm tone is a single note, not a layer, so it sounds once.
+    if (progress >= WARM_TONE_AT && !warmTonePlayed.current) {
+      warmTonePlayed.current = true;
+      warmTone.volume = WARM_TONE_GAIN * bedVolume;
+      warmTone.seekTo(0);
+      warmTone.play();
+    }
+  }, [bed, chime, warmTone, progress, maxVolume]);
 
   // The alarm is the backstop, so it is not scaled by anything.
   useEffect(() => {

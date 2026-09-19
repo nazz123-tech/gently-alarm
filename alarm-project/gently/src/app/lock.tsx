@@ -141,7 +141,11 @@ export default function LockScreen() {
   useWakeSound({
     soundscapeId: soundscape.id,
     maxVolume,
-    progress: state === 'window' ? windowProgress : null,
+    // Ringing is the last step of the same progression, not a different
+    // event: the soundscape stays at the top of its ramp and the alarm joins
+    // it. Cutting the sound out the moment the alarm starts would undo four
+    // steps of not startling anybody.
+    progress: state === 'window' ? windowProgress : state === 'ringing' ? 1 : null,
     ringing: state === 'ringing',
   });
 
