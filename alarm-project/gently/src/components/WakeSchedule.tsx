@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { SectionHeader } from '@/components/SectionHeader';
@@ -27,7 +28,10 @@ export function WakeSchedule({
   selectedWeekday,
   onSelectWeekday,
 }: WakeScheduleProps) {
-  const days = weekFrom(now);
+  // The seven days only change when the date does. Without this they would be
+  // rebuilt — seven date objects at a time — on every step of a dial drag.
+  const dayKey = now.toDateString();
+  const days = useMemo(() => weekFrom(now), [dayKey]);
 
   return (
     <View>

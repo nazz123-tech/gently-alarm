@@ -40,9 +40,12 @@ export default function AppPage() {
   const [soundscapeId, setSoundscapeId] = useState('soft-rain');
   const [level, setLevel] = useState(0.45); // 18 dB, as in the reference
 
-  // The clock at the top is a real clock.
+  // Once every half minute, not every second. The only thing that shows
+  // seconds is NowBlock, which keeps its own timer; everything here works in
+  // whole minutes, so waking the page more often than this just re-renders the
+  // schedule and the countdown for no visible gain.
   useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 1000);
+    const tick = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(tick);
   }, []);
 
@@ -61,7 +64,7 @@ export default function AppPage() {
       <ScrollView contentContainerClassName="px-5 pb-12">
         <AppHeader armed={!paused} />
 
-        <NowBlock now={now} />
+        <NowBlock />
 
         <NextAwakening
           now={now}
@@ -103,14 +106,26 @@ export default function AppPage() {
             Light rises before sound
           </Text>
 
-          {/* Temporary, until the lock screen is a real iOS one in step 9. */}
-          <Link href="/lock" asChild>
-            <Pressable accessibilityRole="button" hitSlop={8}>
-              <Text style={textStyles.chipLabel} className="text-ink-secondary">
-                Lock screen
-              </Text>
-            </Pressable>
-          </Link>
+          {/* Temporary, until the lock screen is a real iOS one. "Preview wake"
+              opens it straight into the wake window so the ramp can be heard
+              without waiting for a real alarm. */}
+          <View className="flex-row gap-5">
+            {(['armed', 'window'] as const).map((openAs) => (
+              <Link
+                key={openAs}
+                href={{
+                  pathname: '/lock',
+                  params: { soundscape: soundscapeId, level: String(level), state: openAs },
+                }}
+                asChild>
+                <Pressable accessibilityRole="button" hitSlop={8}>
+                  <Text style={textStyles.chipLabel} className="text-ink-secondary">
+                    {openAs === 'armed' ? 'Lock screen' : 'Preview wake'}
+                  </Text>
+                </Pressable>
+              </Link>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -41,6 +41,12 @@ const SHAPE = [
 
 export const CYCLE_LENGTH = SHAPE.length;
 
+/**
+ * How loud each step is, as percentages. The list the app page shows and the
+ * curve the sound actually follows are the same numbers, so they cannot drift.
+ */
+export const CYCLE_LEVELS = SHAPE.map((step) => step.level);
+
 /** Which steps take their name from the soundscape. */
 const BED_STEP = 1;
 const CHIME_STEP = 2;

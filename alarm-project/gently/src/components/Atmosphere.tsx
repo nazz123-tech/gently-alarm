@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { LevelMeter } from '@/components/LevelMeter';
@@ -28,7 +29,7 @@ type AtmosphereProps = {
  * This and the dial are the two things you actually set, which is why they
  * both live on this page rather than on the lock screen.
  */
-export function Atmosphere({
+export const Atmosphere = memo(function Atmosphere({
   soundscapeId,
   onSelect,
   level,
@@ -103,4 +104,4 @@ export function Atmosphere({
       </ScrollView>
     </View>
   );
-}
+});

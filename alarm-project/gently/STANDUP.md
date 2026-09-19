@@ -392,3 +392,376 @@ will need separating.
 
 **Next:** the alarm audio itself — the beds looping under the wake window with
 the level ramp the progression already describes.
+
+## Step 9a: The dial was lagging (2026-09-19)
+
+Three separate things were compounding, none of which showed up in a build log.
+
+**1. The thread crossing happened on every frame.**
+The "has it actually changed?" check lived inside the JavaScript function, so
+every single pan event — 60 to 120 a second — woke the JS thread just to be
+told nothing had changed. `pointToMinutes` and `snapMinutes` are worklets now,
+the check runs on the UI thread with the gesture, and JavaScript is only woken
+when the dial really moves a step.
+
+**2. `onChange` was not throttled at all.**
+A quick flick crosses roughly seventy of the 288 steps in a third of a second —
+about 240 `setState` calls a second, each one rebuilding the week array and
+re-rendering the page. Nothing can draw that fast, so the handle fell behind
+the finger. Updates handed to React are now capped at one per frame (16ms).
+The value the finger *stops* on is always delivered on release, so throttling
+cannot lose the final time.
+
+**3. The page re-rendered every second for a clock.**
+`now` lived on the page and ticked once a second, which re-rendered everything —
+including `nextAlarmAt` (up to eight date objects) and `weekFrom` (seven more).
+Fifteen date objects a second, before anyone touched the dial.
+- `NowBlock` keeps its own timer now. It is the only thing that shows seconds.
+- The page ticks every 30 seconds instead, which is plenty for a countdown
+  measured in minutes.
+- `AppHeader`, `NowBlock` and `Atmosphere` are memoised, so they sit still while
+  the dial turns.
+- `weekFrom` is memoised on the date, so the week is not rebuilt per step.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds clean
+
+**Not verified**
+- Whether it actually feels better. This needs the phone.
+
+**If it still lags, the next lever is a bigger one.** The arc and the handle are
+drawn from React state, so they can never move sooner than React re-renders.
+Driving them from shared values instead would let them track the finger on the
+UI thread and leave React to catch up with the text. That is the proper fix and
+a more invasive one, which is why the cheap three went first.
+
+## Step 9b: Reverted the UI-thread gesture (2026-09-19)
+
+The 9a change crashed the app the moment the dial was touched. Reverted the
+part that could have caused it, kept the rest.
+
+**Reverted**
+- `dial.ts` — `pointToMinutes` and `snapMinutes` are plain functions again, no
+  `'worklet'`.
+- `RotaryDial` — the gesture callbacks contain nothing but `runOnJS(...)` again,
+  which is the shape that worked. No shared-value writes and no cross-module
+  worklet calls on the UI thread.
+
+**Kept, because none of it can touch a gesture**
+- The 16ms throttle, moved to the JavaScript side. React still cannot be asked
+  to render faster than the screen, and the value the finger stops on is still
+  delivered on release via `onFinalize`.
+- The change gate, so a drag does not re-render for values that did not change.
+- `NowBlock` keeping its own once-a-second timer; the page ticks every 30s.
+- `AppHeader`, `NowBlock` and `Atmosphere` memoised; `weekFrom` memoised on the
+  date.
+
+**Cause: not yet known.** Two hypotheses were checked and both were wrong — the
+`'worklet'` directives were correctly placed as the first statement, and Babel
+did workletize both functions. What was genuinely new in 9a was running real
+worklet logic *inside* the gesture callbacks, where before they only called
+`runOnJS`: a cross-module worklet call, shared-value writes and `Date.now()`.
+Worth knowing before retrying: Reanimated 4 moved worklets into the separate
+`react-native-worklets` package, so the API here is not the Reanimated 3 one
+most examples assume.
+
+**Do not retry this without the crash text.** Guessing at it costs more than
+the lag does.
+
+## Step 9c: Making the dial tick cheaper (2026-09-19)
+
+The dial still lagged after 9b, and the suspicion was the sound. The timing
+supports it: the lag appeared in the same step the tick was wired.
+
+The mechanism is plausible. `playDialTick` calls `seekTo(0)`, which is a call
+into the native audio player, and it ran *before* `onChange` — so every step
+paid for a native round-trip before React was even told the value had moved.
+
+**Three changes**
+1. **The dial moves first, the click follows.** `onChange` now runs before
+   `playDialTick` in `announce`.
+2. **The audio is handed to a timer** rather than run inline, so `seekTo` cannot
+   sit between the finger moving and the dial redrawing. The sound is allowed
+   to be a frame late; the dial is not.
+3. **The minimum gap went from 30ms to 55ms** — about eighteen ticks a second
+   instead of thirty-three, so a third fewer native calls. A fast spin still
+   sounds like a dense run of clicks, and a careful drag is never throttled.
+
+**And a switch.** `TICK_ENABLED` at the top of `useDialTick.ts`. Whether the
+sound is what makes the dial lag is a question best answered by turning it off
+and dragging, not by reasoning about it — especially after 9a, where reasoning
+about the cause produced a crash.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+**If silencing it fixes the lag, the better answer is probably haptics.**
+`expo-haptics` `selectionAsync()` exists for exactly this — the detent feedback
+iOS uses in its own pickers. It is far cheaper than playing a file, and it
+behaves correctly with the silent switch, which the dial tick currently does
+not (see the note in step 9). The wristwatch recording would then be spare,
+or kept as an option alongside.
+
+## Step 9d: Haptics instead of a sound file (2026-09-19)
+
+Added `expo-haptics` (~57.0.3) and moved the dial's detent feedback onto it.
+
+**Done**
+- `src/lib/useDialTick.ts` is now `src/lib/useDialFeedback.ts`. It calls
+  `Haptics.selectionAsync()` — the method the docs name for exactly this, and
+  what iOS uses in its own pickers.
+- Two independent switches at the top of the file: `HAPTICS_ENABLED` (on) and
+  `SOUND_ENABLED` (off). The wristwatch files stay in `assets/sounds/`; turn
+  the sound back on if you want both.
+- Minimum gap between signalled steps is 45ms, covering both.
+- The feedback is still handed to a timer rather than run inline, for the same
+  reason as before: both haptics and audio cross into native code, and that
+  work must not sit between the finger moving and the dial redrawing.
+
+**Why this is the better answer than cheaper audio**
+It costs far less than playing a file, and it behaves correctly with the mute
+switch — which the sound did not. That wart from step 9 is gone rather than
+worked around.
+
+**One thing it cannot do**
+iOS ignores haptics in Low Power Mode, when the user has turned system haptics
+off, and while the camera or dictation is running. So haptics must never be the
+only feedback that matters — fine for a dial, where the number moving is the
+real feedback, but worth remembering before using them anywhere load-bearing.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds clean, 1783 modules
+
+**Left alone on purpose**
+`expo-doctor` now reports patch drift on four packages (`expo`, `expo-asset`,
+`expo-constants`, `expo-router`), surfaced by the install and unrelated to
+haptics. Not bumped: changing four dependencies while measuring a performance
+problem would add variables to the measurement. `npx expo install --check`
+fixes it whenever the dial is settled.
+
+## Step 9e: Sound back on, diagnosis confirmed (2026-09-19)
+
+Silencing the dial made it smooth, which settles it: **the sound was the cause
+of the lag**, not the render path. The bigger fix that was on the table —
+driving the arc and handle from shared values so they never wait for React — is
+not needed, and the crash in 9a was chasing the wrong thing entirely.
+
+**Done**
+- `SOUND_ENABLED` back to true. The click plays alongside the haptics.
+
+The path it runs down now is much cheaper than the one that caused the problem:
+45ms between steps rather than 30, handed to a timer rather than run inline,
+and fired after the dial redraws rather than before. Roughly a third of the
+native calls, none of them blocking the redraw.
+
+**If the lag comes back, flip `SOUND_ENABLED` to false first.** Haptics carry
+the detent on their own — that has now been felt on the device, not assumed.
+The next lever after that is decoupling the two rates, so the haptic fires on
+every step and the sound only on every second or third one.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 9f: Softening the dial click (2026-09-19)
+
+The click was too sharp. Measuring it said why, and changed the fix.
+
+**What the tick actually is**
+
+| band | share of energy |
+| --- | --- |
+| below 2 kHz | 1.1% |
+| 2–8 kHz | 27.8% |
+| above 8 kHz | 71.1% |
+
+Spectral centroid 9,024 Hz. It is almost pure sizzle with no body at all.
+
+**So a plain low-pass was the wrong tool.** Cutting the top of a sound that has
+nothing underneath leaves near-silence, not a thock. What works is pitching it
+*down* first — that moves the energy it already has into the low end — and then
+rolling off what remains up top.
+
+**Three variants**, in `context/sounds/edited/`:
+
+| variant | pitch | low-pass | centroid | length |
+| --- | --- | --- | --- | --- |
+| original | 1.00x | — | 9,024 Hz | 60ms |
+| `soft` | 1.00x | 5 kHz | 5,231 Hz | 60ms |
+| `softer` | 0.60x | 6 kHz | 5,052 Hz | 80ms |
+| `dull` | 0.45x | 4 kHz | 3,709 Hz | 80ms |
+
+`softer` is installed. Note that `soft` lands at almost the same brightness as
+`softer` but without the pitch change — which is exactly the trap above: it
+reads thinner because low-passing took energy away instead of moving it.
+
+Each variant also gets a 1ms fade-in, which takes the edge off the attack, and
+peak stays at -6 dBFS so the change is tone and not level.
+
+**Swapping**, from `alarm-project/gently`:
+
+    cp ../context/sounds/edited/dial_tick_dull.m4a assets/sounds/dial_tick.m4a
+    cp ../context/sounds/edited/dial_tock_dull.m4a assets/sounds/dial_tock.m4a
+
+**One thing to watch**: the pitched variants are 80ms against a 45ms minimum
+gap. Two players alternate, so each is reused every 90ms and just clears — but
+if the gap is ever shortened, they will start overlapping.
+
+**Checks**
+- `npx expo export --platform ios`: builds clean
+
+## Step 9g: Dial sound dropped (2026-09-19)
+
+Neither the original click nor the softened versions worked against a haptic.
+Dropped rather than tuned further.
+
+**Done**
+- `useDialFeedback` is haptics only — about fifteen lines instead of sixty. No
+  audio players, no tick/tock alternation, no sound switch.
+- Removed `assets/sounds/dial_tick.m4a` and `dial_tock.m4a` from the app.
+- iOS bundle went 1783 to 1771 modules: the audio player code is no longer
+  pulled in by the dial.
+
+**Kept**
+- `expo-audio` stays a dependency. Nothing in `src` imports it now, but the
+  soundscape beds need it next.
+- The recordings and every variant stay in `context/sounds/edited/`, in case
+  the decision is ever revisited.
+
+This is also what iOS pickers do: they tap, they do not click.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 9h: Dial click removed entirely (2026-09-19)
+
+**Deleted**
+- The eight click variants in `context/sounds/edited/` (`dial_tick*`, `dial_tock*`).
+- The wristwatch source MP3 in `context/sounds/`.
+- The remaining comment in `useDialFeedback` pointing at recordings that no
+  longer exist.
+
+The app assets and the audio code went in 9g, so nothing in `src` referenced
+any of this by the time it was deleted.
+
+**Deliberately kept, despite matching a search for "tick"**
+- `Ticks()` in `RotaryDial` — the twelve marks drawn around the dial face. A
+  visual, nothing to do with sound.
+- The `setInterval` timers in `index.tsx`, `lock.tsx` and `NowBlock.tsx`, whose
+  variable is called `tick`.
+- `dial.ts`, `DotClock.tsx` — named for the dial and the clock, not the click.
+- Haptics. They are the replacement for the click rather than part of it, and
+  they are what made the dial smooth.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+**Meanwhile, the remaining sounds arrived.** `context/sounds/` now holds all
+nine: a replacement fireplace (`nature_fire_burning_crackle_fireplace.mp3`,
+swapped for the 35-second one with the spit), the warm tone
+(`..._game_sound_chime_warm_soft_mallet_start_up_tone_...`) and the wake alarm
+(`..._alarm_clock_beeps_...`). None processed yet.
+
+## Step 10: The remaining sounds, and a correction (2026-09-19)
+
+All nine assets now exist in `context/sounds/edited/`.
+
+**New this round**
+- `bed_fireplace` — the replacement recording, 69s instead of 35s. The old one
+  put a 14.5 dB spit on a 35-second cycle, which made a random fire sound like
+  a metronome. Trimmed and crossfaded to 65.5s.
+- `layer_chime` — the wind chimes, trimmed and crossfaded into an 8.7s loop.
+- `step_warm_tone` — 2.57 seconds of silence cut off the end, which is what you
+  asked for a while back. 4.7s down to 2.1s.
+- `step_wake_alarm` — cut to eleven whole beep cycles so it can ring
+  continuously. It is the backstop, so it has to repeat until stopped rather
+  than play once.
+
+**A correction to step 9.** I reported the five beds as fixed with "seams under
+1 dB". That measurement was wrong — or rather, it measured the wrong thing. It
+compared the *level* either side of the join, and a click can survive a perfect
+level match: the levels agree while the waveform still jumps.
+
+Measuring the actual sample-to-sample step at the wrap found five of eight loops
+would click, including three beds already committed. Worst was `bed_forest`,
+where the jump was **2 dB louder than the average signal**.
+
+Every loop has been rebuilt with its first and last sample faded to silence over
+4ms, which makes the join continuous by construction rather than by luck.
+
+| loop | wrap, before | after (measured on the AAC) |
+| --- | --- | --- |
+| bed_soft-rain | -7.1 dB | -21.9 dB |
+| bed_ocean | -28.1 dB | -21.4 dB |
+| bed_forest | **+2.0 dB** | -26.5 dB |
+| bed_summer-storm | -34.0 dB | -25.2 dB |
+| bed_dawn-chorus | -7.4 dB | -27.2 dB |
+| bed_fireplace | -21.1 dB | -35.4 dB |
+| layer_chime | **-0.6 dB** | -48.7 dB |
+| step_wake_alarm | -5.3 dB | -44.0 dB |
+
+Relative to the signal, so lower is better. Worst case went from a step louder
+than the audio to one about twelve times quieter than it.
+
+**It is not mathematically zero, and that is expected.** The ends are silent
+before encoding; AAC is lossy, so the decoder does not reconstruct exactly zero.
+The residue is encoder error rather than a bad cut, and at -21 dB under a
+soundscape playing at 45% it should not be audible. Worth confirming by ear on
+the quietest bed.
+
+**Lesson worth keeping:** verify on the file that actually ships, not the
+intermediate. The same mistake in step 9 was searching `dist` for `*.m4a` when
+assets are stored hash-named.
+
+**Next:** wiring the beds to the wake window with the level ramp.
+
+## Step 11: The beds wired to the wake window (2026-09-19)
+
+The soundscape now actually plays and actually fades up.
+
+**Done**
+- All nine assets copied into `assets/sounds/`.
+- `src/lib/ramp.ts` — `levelAt(progress)`. The five cycle steps sit evenly
+  across the window, so this walks between them: a quarter of the way through
+  is exactly step two, and between steps the level slides rather than jumps.
+  Five audible jumps would be five chances to be startled.
+- `src/lib/cycle.ts` — exports `CYCLE_LEVELS`, so the list the app page shows
+  and the curve the sound follows are the same numbers and cannot drift.
+- `src/lib/useWakeSound.ts` — two players. The soundscape loops and follows the
+  ramp up to the level chosen on the app page; the alarm loops at full volume
+  and ignores the ramp, because it is the backstop.
+- `src/app/lock.tsx` — walks the window and plays it. The sub-line shows the
+  real level now instead of a hard-coded "12%".
+- The settings reach the lock screen as route parameters on the link, so no
+  store or context was needed for this.
+
+**Audio mode**: `playsInSilentMode` and `shouldPlayInBackground` are both on. An
+alarm that respects the mute switch is not an alarm. This is also the reason the
+dial ended up silent — the setting is global, so a UI click would have been
+forced to ignore the mute switch too.
+
+**Two things worth knowing**
+
+1. **The window runs in a minute here, not thirty.** `DEMO_WINDOW_SECONDS` in
+   `lock.tsx`. The curve is identical; only the clock is shorter. Waiting half
+   an hour to hear whether a fade works is not a test anyone runs twice.
+2. **The lock screen could not reach the wake window at all.** It starts armed
+   and only moves on snooze or stop, so the sound could never have fired. It
+   now accepts a state on the link, and the app page has a "Preview wake" link
+   beside "Lock screen" that opens it straight into the window.
+
+**Not wired: `layer_chime` and `step_warm_tone`.** They are steps 3 and 4 of the
+cycle as *layers* over the bed, and what is built here is a single bed fading
+up. They are in `assets/sounds/` but nothing requires them, so Metro correctly
+leaves them out of the bundle — seven of the nine files ship, which is right.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds clean, and all seven referenced
+  audio files confirmed in the bundle by MD5
+
+**Not verified**
+- Nothing has been heard. Whether the fade feels gentle, whether the loop seams
+  are audible under it, and whether the alarm is loud enough to do its job all
+  need the phone.

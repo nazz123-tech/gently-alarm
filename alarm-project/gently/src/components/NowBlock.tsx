@@ -1,19 +1,28 @@
+import { memo, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { formatDateLine } from '@/lib/schedule';
 import { colors, textStyles } from '@/theme';
-
-type NowBlockProps = {
-  now: Date;
-};
 
 /**
  * Today's date and the time right now, the first thing you see on the page.
  *
  * The seconds sit next to "a gentle start" rather than in the clock itself, so
  * the big digits only change once a minute and the page stays still.
+ *
+ * The once-a-second timer lives here rather than on the page. This is the only
+ * thing that shows seconds, and when the page owned the timer the whole thing
+ * re-rendered sixty times a minute — including the schedule and the countdown,
+ * which between them build fifteen date objects each pass.
  */
-export function NowBlock({ now }: NowBlockProps) {
+export const NowBlock = memo(function NowBlock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const tick = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
@@ -44,4 +53,4 @@ export function NowBlock({ now }: NowBlockProps) {
       </View>
     </View>
   );
-}
+});

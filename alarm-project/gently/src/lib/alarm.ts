@@ -65,6 +65,8 @@ type ScreenInput = {
   /** Seconds until the alarm rings again. */
   snoozeLeft: number;
   snoozesUsed: number;
+  /** How loud the soundscape is right now, 0-100, while in the window. */
+  windowLevelPercent: number;
 };
 
 /**
@@ -78,6 +80,7 @@ export function describeScreen({
   secondsLeft,
   snoozeLeft,
   snoozesUsed,
+  windowLevelPercent,
 }: ScreenInput): ScreenContent {
   switch (state) {
     case 'armed':
@@ -95,7 +98,7 @@ export function describeScreen({
         label: 'Waking you gently',
         clock: ALARM_TIME,
         clockSize: 'small',
-        sub: [SOUNDSCAPE, '12%'],
+        sub: [SOUNDSCAPE, `${windowLevelPercent}%`],
         sky: 'dawn',
         showTray: true,
       };

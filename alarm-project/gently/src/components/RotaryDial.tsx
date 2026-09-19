@@ -13,7 +13,7 @@ import {
   pointToMinutes,
 } from '@/lib/dial';
 import { formatDialTime } from '@/lib/time';
-import { useDialTick } from '@/lib/useDialTick';
+import { useDialFeedback } from '@/lib/useDialFeedback';
 import { colors, textStyles } from '@/theme';
 
 /** Everything is laid out against this one number, in points. */
@@ -33,6 +33,17 @@ const TICK_OUTER = RADIUS - STROKE / 2 - 8;
 const TICK_INNER = TICK_OUTER - 7;
 
 const HANDLE_RADIUS = 6;
+
+/**
+ * The shortest gap between two values handed to React, in milliseconds.
+ *
+ * The dial cannot show more than one value per drawn frame. A quick flick
+ * crosses dozens of the 288 steps in a moment, and without this React is asked
+ * to re-render the page far faster than the screen refreshes — which is what
+ * makes the handle fall behind the finger. The value the finger ends on is
+ * always delivered, so nothing is lost by holding the rest back.
+ */
+const MIN_UPDATE_MS = 16;
 
 /** The full way round, used to draw the arc as a dashed circle. */
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -59,7 +70,7 @@ export function RotaryDial({ minutesOfDay, onChange }: RotaryDialProps) {
   const filled = minutesToFraction(minutesOfDay) * CIRCUMFERENCE;
   const handle = pointOnCircle(CENTRE, RADIUS, angle);
 
-  const playDialTick = useDialTick();
+  const signalDialStep = useDialFeedback();
 
   /**
    * The last time we announced.
@@ -69,30 +80,61 @@ export function RotaryDial({ minutesOfDay, onChange }: RotaryDialProps) {
    * the dial really moves a step — and the parent is not asked to re-render
    * for a change that did not happen.
    */
+  /**
+   * Bookkeeping for the drag, in refs rather than state: changing these must
+   * never itself cause a render.
+   *
+   * `lastAnnounced` is the value React has been told about and `pending` is the
+   * value the finger is actually over. They differ whenever the throttle below
+   * has held an update back.
+   */
   const lastAnnounced = useRef(minutesOfDay);
+  const lastAnnouncedAt = useRef(0);
+  const pending = useRef(minutesOfDay);
+
+  function announce(minutes: number) {
+    lastAnnounced.current = minutes;
+    lastAnnouncedAt.current = Date.now();
+
+    // Order matters: the dial moves first and the click follows. The other way
+    // round, every step paid for a native audio call before React was even
+    // told the value had changed.
+    onChange(minutes);
+    signalDialStep();
+  }
 
   /** Turns a touch inside the square into a time. */
   function touchToTime(x: number, y: number, isStart: boolean) {
     // A new drag can begin on a different day's time than the last one ended
     // on, so the baseline is re-read when the finger lands.
-    if (isStart) lastAnnounced.current = minutesOfDay;
+    if (isStart) {
+      lastAnnounced.current = minutesOfDay;
+      lastAnnouncedAt.current = 0;
+    }
 
     const minutes = pointToMinutes(x - CENTRE, y - CENTRE);
-    if (minutes === lastAnnounced.current) return;
+    pending.current = minutes;
 
-    lastAnnounced.current = minutes;
-    playDialTick();
-    onChange(minutes);
+    if (minutes === lastAnnounced.current) return;
+    if (Date.now() - lastAnnouncedAt.current < MIN_UPDATE_MS) return;
+
+    announce(minutes);
+  }
+
+  /** Whatever the throttle held back, the time the finger stopped on wins. */
+  function finishTouch() {
+    if (pending.current !== lastAnnounced.current) announce(pending.current);
   }
 
   const pan = Gesture.Pan()
     .minDistance(0)
     .onBegin((event) => runOnJS(touchToTime)(event.x, event.y, true))
-    .onUpdate((event) => runOnJS(touchToTime)(event.x, event.y, false));
+    .onUpdate((event) => runOnJS(touchToTime)(event.x, event.y, false))
+    .onFinalize(() => runOnJS(finishTouch)());
 
   /** Arrow keys and VoiceOver's swipe up/down nudge by one step. */
   function nudge(by: number) {
-    playDialTick();
+    signalDialStep();
 
     const next = minutesOfDay + by;
     if (next < 0) return onChange(LAST_MINUTE_OF_DAY);

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,6 +16,9 @@ import {
   snoozeButtonLabel,
   type AlarmState,
 } from '@/lib/alarm';
+import { levelAt } from '@/lib/ramp';
+import { SOUNDSCAPES } from '@/lib/soundscapes';
+import { useWakeSound } from '@/lib/useWakeSound';
 import { textStyles } from '@/theme';
 
 /** The prototype's two clock widths. */
@@ -27,6 +30,16 @@ const CLOCK_WIDTH = { full: '86%', small: '52%' } as const;
  * way of someone who is now getting out of bed.
  */
 const STOPPED_HOLD_MS = 5000;
+
+/**
+ * How long the wake window takes here.
+ *
+ * The real one is 30 minutes (`WAKE_WINDOW_MINUTES`). Waiting half an hour to
+ * hear whether the ramp works is not a test anyone runs twice, so this screen
+ * runs the same curve over a minute instead. The shape is identical; only the
+ * clock is different.
+ */
+const DEMO_WINDOW_SECONDS = 60;
 
 /**
  * The lock screen, and deliberately almost nothing else.
@@ -41,12 +54,52 @@ const STOPPED_HOLD_MS = 5000;
  */
 export default function LockScreen() {
   const router = useRouter();
-  const [state, setState] = useState<AlarmState>('armed');
+
+  // Carried from the app page by the link, so the lock screen wakes you with
+  // the soundscape and level you actually chose.
+  const params = useLocalSearchParams<{ soundscape?: string; level?: string; state?: string }>();
+  const soundscapeId = params.soundscape ?? SOUNDSCAPES[0].id;
+  const maxVolume = Number(params.level ?? 0.45);
+
+  // The screen can be opened straight into a state. Real alarms arrive at the
+  // wake window after hours of counting down, which is no way to test a sound.
+  const [state, setState] = useState<AlarmState>((params.state as AlarmState) ?? 'armed');
   const [secondsLeft, setSecondsLeft] = useState(32461); // 9:01:01
   const [snoozeLeft, setSnoozeLeft] = useState(0);
   const [snoozesUsed, setSnoozesUsed] = useState(0);
+  const [windowProgress, setWindowProgress] = useState(0);
 
-  const screen = describeScreen({ state, secondsLeft, snoozeLeft, snoozesUsed });
+  const screen = describeScreen({
+    state,
+    secondsLeft,
+    snoozeLeft,
+    snoozesUsed,
+    windowLevelPercent: Math.round(levelAt(windowProgress) * 100),
+  });
+
+  // The soundscape fades up across the window; the alarm rings under it.
+  useWakeSound({
+    soundscapeId,
+    maxVolume,
+    progress: state === 'window' ? windowProgress : null,
+    ringing: state === 'ringing',
+  });
+
+  // Walk through the wake window while that state is showing.
+  useEffect(() => {
+    if (state !== 'window') {
+      setWindowProgress(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const step = setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      setWindowProgress(Math.min(1, elapsed / DEMO_WINDOW_SECONDS));
+    }, 250);
+
+    return () => clearInterval(step);
+  }, [state]);
 
   // One ticker for the whole screen. Only two states count down.
   useEffect(() => {

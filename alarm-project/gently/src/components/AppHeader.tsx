@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { colors, textStyles } from '@/theme';
@@ -9,7 +10,7 @@ import { colors, textStyles } from '@/theme';
  * Gently, so the name is ours and the layout is theirs. The dot on the right
  * means an alarm is set.
  */
-export function AppHeader({ armed }: { armed: boolean }) {
+export const AppHeader = memo(function AppHeader({ armed }: { armed: boolean }) {
   return (
     <View className="flex-row items-center gap-3 pb-4">
       <View
@@ -45,4 +46,4 @@ export function AppHeader({ armed }: { armed: boolean }) {
       />
     </View>
   );
-}
+});
