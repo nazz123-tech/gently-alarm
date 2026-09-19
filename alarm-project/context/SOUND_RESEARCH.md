@@ -11,18 +11,18 @@ licensing problem once the app ships on the App Store.
 Same voice as the existing three: one name, a two-word-pair poetic subtitle, nothing
 longer. Keep the copy short enough to sit under the alarm row next to a time range.
 
-| # | Name | Subtitle | Texture | Status |
-| - | --- | --- | --- | --- |
-| 1 | **Soft Rain** | fine rain on a quiet window | light, high-frequency, no wind | in video |
-| 2 | **Ocean** | slow tide, distant foam | low rolling swell, long period | in video |
-| 3 | **Rainforest** | warm air, subtle birdsong | dense, humid, layered insects+birds | in video |
-| 4 | **Summer Storm** | far-off thunder, steady rain | heavier rain bed + occasional low rumble | new |
-| 5 | **Tide Pools** | shallow waves, trickling stone | beach, but close and small — not open ocean | new |
-| 6 | **Pine Forest** | wind through needles, creaking branches | dry, airy, wind-driven — contrast to Rainforest's damp stillness | new |
-| 7 | **Mountain Stream** | clear water over stone | running fresh water, brighter/higher than ocean | new |
-| 8 | **Dawn Chorus** | first light, waking birds | bird-forward, sparse — thematically the "waking up" sound | new |
-| 9 | **Night Garden** | crickets, a far owl | for the evening/bedtime nudge (backlog §08) | new |
-| 10 | **Fireplace** | low crackle, settling embers | indoor/cozy, non-nature — good bedtime contrast, needs no window/season | new |
+| #   | Name                | Subtitle                                | Texture                                                                 | Status   |
+| --- | ------------------- | --------------------------------------- | ----------------------------------------------------------------------- | -------- |
+| 1   | **Soft Rain**       | fine rain on a quiet window             | light, high-frequency, no wind                                          | in video |
+| 2   | **Ocean**           | slow tide, distant foam                 | low rolling swell, long period                                          | in video |
+| 3   | **Rainforest**      | warm air, subtle birdsong               | dense, humid, layered insects+birds                                     | in video |
+| 4   | **Summer Storm**    | far-off thunder, steady rain            | heavier rain bed + occasional low rumble                                | new      |
+| 5   | **Tide Pools**      | shallow waves, trickling stone          | beach, but close and small — not open ocean                             | new      |
+| 6   | **Pine Forest**     | wind through needles, creaking branches | dry, airy, wind-driven — contrast to Rainforest's damp stillness        | new      |
+| 7   | **Mountain Stream** | clear water over stone                  | running fresh water, brighter/higher than ocean                         | new      |
+| 8   | **Dawn Chorus**     | first light, waking birds               | bird-forward, sparse — thematically the "waking up" sound               | new      |
+| 9   | **Night Garden**    | Su                                      | for the evening/bedtime nudge (backlog §08)                             | new      |
+| 10  | **Fireplace**       | low crackle, settling embers            | indoor/cozy, non-nature — good bedtime contrast, needs no window/season | new      |
 
 Two more if the list ever needs stretching, both very quiet by nature and good
 candidates for the "barely audible first 90 seconds" ramp (backlog §04):
@@ -30,6 +30,7 @@ candidates for the "barely audible first 90 seconds" ramp (backlog §04):
 a cool breeze.
 
 Notes:
+
 - Dawn Chorus and Night Garden are the two picks worth prioritizing beyond the
   original three — they're the only ones that tie directly to a specific backlog
   feature (Dawn Chorus for the getting-up moment, Night Garden for the bedtime
@@ -50,6 +51,7 @@ Notes:
 Three real options, in order of how much control/cost they trade off:
 
 ### A. Licensed sound-effect libraries (fastest)
+
 For a **shipped, distributed app** (not a video or podcast), the license has to say
 apps/games/software explicitly — a lot of "royalty-free music" services are scoped to
 video/social content only and do **not** cover embedding audio as an app asset.
@@ -83,6 +85,7 @@ video/social content only and do **not** cover embedding audio as an app asset.
   is personal/non-commercial only. Not usable for a shipped commercial app.
 
 ### B. Record or commission custom loops (best fit, more effort)
+
 Given the brand voice already leans on very specific, poetic descriptions ("slow
 tide, distant foam"), custom recordings avoid licensing ambiguity entirely and let
 each soundscape actually match its subtitle. A field-recording freelancer (via
@@ -91,6 +94,7 @@ cheaper than it sounds, and this sidesteps the "primary value of a product" clau
 in library EULAs since the app would own the assets outright.
 
 ### C. Generative/AI ambient audio (newest option, check current terms)
+
 Tools that generate ambient beds from a text prompt exist now (ElevenLabs sound
 generation and similar); output ownership and commercial-use terms vary by
 provider and change often, so this needs a fresh check against each tool's current

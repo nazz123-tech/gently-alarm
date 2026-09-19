@@ -114,3 +114,45 @@ one-off edit fixes properly in the file.
 **Do not fix this before hearing it.** Get one bed in, loop it, and listen. If
 the seam is inaudible under a soundscape at 45%, that is the answer. Sourcing
 first, fixing second.
+
+---
+
+## Correction: the rain picks were wrong (2026-09-19)
+
+Both rain beds turned out to be the same thing:
+
+    zapsplat_nature_rain_medium_heavy_roof_and_trees_constant_...
+    zapsplat_nature_rain_rainfall_medium_heavy_constant_distant_thunder_...
+
+**Both are "medium heavy".** This shortlist filtered on the word *constant*,
+because the worry at the time was seamless looping. That was the right thing to
+worry about and the wrong thing to filter on alone: it selected for texture
+that never changes and ignored what the texture actually is. "Medium heavy rain
+on a roof" is not a soundscape called **Soft Rain**, whose own subtitle here is
+*fine rain on a quiet window*.
+
+It also made Summer Storm nearly a duplicate of Soft Rain — same rain, plus one
+rumble every three minutes.
+
+**Better candidates**, all in the Rain category, same recording from three mic
+positions, about 2:01 each:
+
+| pick | why |
+| --- | --- |
+| Rain on bedroom window, internal, **centre of room** | what you would hear lying in bed — recommended |
+| Rain on bedroom window, internal, **far from window** | softest of the three, if centre is still too present |
+| Rain on bedroom window, internal, **close to window** | most detail, probably too bright for this |
+
+Indoor, distanced, against glass. That is what "soft" means here, and none of
+them describe an event, so the looping worry is satisfied anyway.
+
+**On Summer Storm:** worth judging again *after* Soft Rain is replaced. It read
+as wrong partly because it was a near-duplicate; against a light indoor
+recording, medium-heavy outdoor rain with distant thunder becomes a genuinely
+different thing and earns its name. If it still does not work, the cleanest
+replacement soundscape is **Night Garden** (crickets, a far owl) from
+`SOUND_RESEARCH.md` — a texture unlike any of the other five, and it ties to
+the bedtime feature in the backlog.
+
+**Lesson for future picks:** filter on character first, then check loopability.
+Doing it the other way round selects for monotony.

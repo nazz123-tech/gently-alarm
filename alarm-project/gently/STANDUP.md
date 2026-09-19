@@ -765,3 +765,196 @@ leaves them out of the bundle — seven of the nine files ship, which is right.
 - Nothing has been heard. Whether the fade feels gentle, whether the loop seams
   are audible under it, and whether the alarm is loud enough to do its job all
   need the phone.
+
+## Step 12: The lock screen runs on the real clock (2026-09-19)
+
+You set an alarm for the current time and the lock screen still said "getting
+up in 9 hours", then "7:42". Both were literally hard-coded:
+`secondsLeft = 32461` and `ALARM_TIME = '7:42'`. Nothing connected the lock
+screen to the time you set, or to the clock.
+
+**Done**
+- `alarm.ts` — `ALARM_TIME`, `WAKE_WINDOW` and `SOUNDSCAPE` are gone.
+  `describeScreen` takes the alarm time, the window and the soundscape name as
+  inputs. There are no invented values left in it — the "7 h 12 m asleep" line
+  on the stopped screen has gone too, since nothing tracks sleep.
+- `lock.tsx` rewritten around **one number**: `alarmAt`, a timestamp handed
+  over by the app page. The countdown, the window, which state the screen is
+  in, and how loud the soundscape is are all worked out from that against the
+  real clock.
+- `index.tsx` computes the next alarm with `nextAlarmAt` and puts it on the
+  link, so the app page and the lock screen can no longer disagree.
+
+**The state now follows the clock**, rather than being set by hand:
+
+    stopped                      -> stopped
+    snoozing, and not up yet     -> snoozed
+    past the alarm time          -> ringing
+    inside the wake window       -> window
+    otherwise                    -> armed
+
+**Preview still works.** Opening with a `state` on the link forces that state,
+and the window runs over a minute instead of thirty so the fade can be heard.
+The moment you snooze or stop, the forced state is dropped and the screen goes
+back to following the clock — otherwise it would be stuck in whatever it was
+opened into.
+
+**Checked against the clock at 12:43:**
+
+| alarm set for | state | clock shows | window |
+| --- | --- | --- | --- |
+| 2 minutes away | window | 12:45 | 12:15 – 12:45, level 96% |
+| 20 minutes away | window | 13:03 | 12:33 – 13:03, level 52% |
+| 9 hours away | armed | 9:00:00 counting down | 21:13 – 21:43 |
+
+Worth knowing: the wake window is 30 minutes, so **any alarm set less than half
+an hour ahead means you are already inside the window** — the soundscape starts
+immediately, partway up the ramp. That is correct behaviour, and it is also the
+quickest way to test it for real.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 12a: Nothing played, and why (2026-09-19)
+
+Two separate faults behind "no sound at the start of the window".
+
+**1. The player had its source pulled out from under it.**
+`useAudioPlayer(bedFor(soundscapeId))` loads the file, and then the effect that
+handles swapping soundscapes also ran on mount and called `replace()` with the
+same file — before anything was asked to play. It now skips its first run, so
+`replace` only happens when the soundscape actually changes.
+
+**2. Even working, the opening was inaudible.**
+The cycle starts at 5% and the chosen level was 45%. Those multiply: 5% of 45%
+is about **2% volume**. The intent was "barely audible"; the result was silence.
+
+The ramp is rescaled so its quietest point is 12% of the chosen level rather
+than zero. The shape of the curve and its ceiling are unchanged:
+
+| progress | volume before | after |
+| --- | --- | --- |
+| 0% | 2.3% | **7.4%** |
+| 25% | 20.3% | 23.2% |
+| 50% | 29.3% | 31.1% |
+| 100% | 45.0% | 45.0% |
+
+**3. "Preview wake" renamed to "Test fade · 1 min".**
+The old label did not say what it did. The two links are:
+- **Lock screen** — the alarm that is actually set, running off the clock.
+- **Test fade · 1 min** — the same fade compressed from thirty minutes into
+  one. It exists only because the quiet opening is otherwise impossible to
+  judge without sitting through half an hour of it.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 12b: Turning the soundscapes down (2026-09-19)
+
+Rain and ocean read as hiss rather than water once they get loud.
+
+**I measured before changing anything, and the measurement said I was wrong.**
+The obvious guess was too much high frequency, to be fixed with a shelf. The
+spectra say otherwise:
+
+| bed | centroid | energy above 4 kHz |
+| --- | --- | --- |
+| ocean | **828 Hz** | **1.8%** |
+| summer-storm | 1,652 Hz | 9.6% |
+| forest | 1,985 Hz | 14.6% |
+| soft-rain | 2,349 Hz | 15.2% |
+| fireplace | 2,301 Hz | 22.7% |
+| dawn-chorus | 3,511 Hz | 40.3% |
+
+Ocean is the darkest bed of the six and rain is mid-pack, while the dawn chorus
+— which nobody has complained about — is by far the brightest. So this is not
+excess treble waiting to be filtered. Water and wind are *broadband*: they have
+no pitch or rhythm to hold onto, so past a certain level any of them reads as
+static. That is inherent, and the only lever is level. No EQ applied.
+
+**Done**
+- Default level 0.45 to **0.28** (18 dB to 11 dB on the reference's scale).
+- The guidance bands in `level.ts` moved down with it:
+
+| band | was | now |
+| --- | --- | --- |
+| Very soft | below 0.15 | below 0.10 |
+| Gentle | 0.15–0.35 | 0.10–0.30 |
+| Clear | 0.35–0.70 | 0.30–0.50 |
+| Loud | above 0.70 | above 0.50 |
+
+- The "Loud" advice now names the actual failure: broadband soundscapes turn to
+  hiss up there.
+
+**Worth recording:** those bands were invented from reasoning in step 8, and the
+file said so at the time. Listening on a phone moved every one of them. The old
+thresholds called 18 dB "clear, carries through deeper sleep" — it is hiss. The
+caveat written into that file has been extended rather than quietly dropped.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 13: A genuinely soft rain, and matching the beds (2026-09-19)
+
+**The new Soft Rain is in.** `biiansu_spaces_rain_Far_From_Window`, 1:58 looped.
+It is a different sound from the one it replaces:
+
+| | old (medium heavy, on a roof) | new (far from a bedroom window) |
+| --- | --- | --- |
+| spectral centroid | 2,371 Hz | **633 Hz** |
+| energy above 4 kHz | 15.6% | **2.0%** |
+| loud moments | 2.9 dB above median | none at all, across 1,211 windows |
+
+Dark, indoor, and completely even — which is what the soundscape's own subtitle,
+"fine rain on a quiet window", was always asking for.
+
+**I also did something that was not asked for, because the data demanded it.**
+Dropping the new file in revealed that the beds were never level-matched: they
+spanned **26.2 dB**, from fireplace at -47.4 dBFS to the old rain at -21.2.
+Switching soundscape lurched in volume, and the new rain — recorded 25 dB
+quieter than the one it replaced — would have been inaudible.
+
+All six were rebuilt from source and matched to -26 dBFS. The spread is now
+**9.8 dB**.
+
+**Measuring loudness by median was wrong** and had to be changed. Fire is mostly
+quiet with sharp crackles, so the median reads the gaps between them: it said
+fireplace needed +16 dB when its peaks were already at -1.4 dBFS. Energy RMS
+weights the crackles properly.
+
+**Fireplace still sits 9.8 dB below the rest, and that is the right answer.**
+Its peaks are already at the ceiling, so reaching the target needs 16 dB of
+limiting — which would flatten the crackles into a roar and destroy the only
+thing that makes it sound like a fire. Beds may lean on the limiter by at most
+6 dB (`MAX_LIMIT_DB`); fireplace uses all of it and stops there. Forest and dawn
+chorus also lean on it and do reach the target.
+
+**Checks**
+- Every loop re-verified on the encoded AAC, not the intermediate. All wraps
+  "ok" or better; the worst is the new rain at -16 dB below its own signal,
+  which is the one to listen for since that bed is so quiet and smooth.
+- `npx expo export --platform ios`: builds clean
+
+**Still open**
+- Whether Summer Storm works now that Soft Rain is genuinely soft. It read as a
+  near-duplicate before; against a light indoor recording it should read as a
+  storm. Worth judging before deciding to drop it.
+
+## Step 13a: Summer Storm dropped (2026-09-19)
+
+**Deleted**
+- The entry in `soundscapes.ts` and the `require` in `useWakeSound.ts`.
+- `assets/sounds/bed_summer-storm.m4a`, the copy in `context/sounds/edited/`,
+  and the raw source MP3.
+
+Five soundscapes remain: Soft Rain, Ocean, Forest, Dawn Chorus, Fireplace. All
+five beds confirmed in the bundle by MD5. No trace of "summer" left anywhere in
+`src` or `assets`.
+
+**Note:** `zapsplat_nature_rain_medium_heavy_roof_and_trees_constant_112798.mp3`
+is now orphaned too — it was the old Soft Rain, replaced by the bedroom-window
+recording. Left in place rather than deleted unasked; it is gitignored either
+way, so it costs nothing but disk.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean

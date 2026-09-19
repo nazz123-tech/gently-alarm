@@ -1,5 +1,5 @@
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { levelAt } from '@/lib/ramp';
 
@@ -11,12 +11,22 @@ const BEDS = {
   'soft-rain': require('@/assets/sounds/bed_soft-rain.m4a'),
   ocean: require('@/assets/sounds/bed_ocean.m4a'),
   forest: require('@/assets/sounds/bed_forest.m4a'),
-  'summer-storm': require('@/assets/sounds/bed_summer-storm.m4a'),
   'dawn-chorus': require('@/assets/sounds/bed_dawn-chorus.m4a'),
   fireplace: require('@/assets/sounds/bed_fireplace.m4a'),
 };
 
 const WAKE_ALARM = require('@/assets/sounds/step_wake_alarm.m4a');
+
+/**
+ * The quietest the soundscape is allowed to get, as a share of the chosen
+ * level.
+ *
+ * The cycle starts at 5%, and 5% of a 45% level is about 2% volume — which is
+ * not "barely audible", it is silence. The ramp is rescaled to start here
+ * instead, which keeps the shape of the curve and its ceiling while making the
+ * opening something you could actually hear in a quiet room.
+ */
+const QUIETEST = 0.12;
 
 function bedFor(soundscapeId: string) {
   return BEDS[soundscapeId as keyof typeof BEDS] ?? BEDS['soft-rain'];
@@ -61,7 +71,17 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
   }, [bed, alarm]);
 
   // Swapping the soundscape swaps the file under the same player.
+  //
+  // Skipped on the first run: `useAudioPlayer` has already loaded this exact
+  // file, and replacing it on mount pulled the source out from under the
+  // player before it was asked to play — which is why nothing was heard.
+  const loaded = useRef(false);
   useEffect(() => {
+    if (!loaded.current) {
+      loaded.current = true;
+      return;
+    }
+
     bed.replace(bedFor(soundscapeId));
   }, [bed, soundscapeId]);
 
@@ -72,7 +92,9 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
       return;
     }
 
-    bed.volume = levelAt(progress) * maxVolume;
+    // Rescaled so the quietest point is QUIETEST rather than zero, and the
+    // loudest is still exactly the level chosen on the app page.
+    bed.volume = (QUIETEST + (1 - QUIETEST) * levelAt(progress)) * maxVolume;
     if (!bed.playing) bed.play();
   }, [bed, progress, maxVolume]);
 

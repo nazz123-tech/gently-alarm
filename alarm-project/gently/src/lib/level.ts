@@ -11,6 +11,11 @@
  * measured sound pressure reading. What it actually sounds like depends on the
  * phone, where it sits in the room, and the soundscape itself. Treat these as
  * a starting point to adjust from, not a calibration.
+ *
+ * The bands were first guessed from reasoning and have since been moved down
+ * after listening on a phone: 18 dB, which the old thresholds called "clear",
+ * turned rain into hiss. Water and wind are broadband, so they lose their
+ * character as they get louder in a way a birdcall or a chime does not.
  */
 
 export type LevelTone = 'low' | 'good' | 'high';
@@ -24,7 +29,7 @@ export type LevelAdvice = {
 /** Where each band ends, as a fraction of the maximum. */
 const BANDS: { upTo: number; value: LevelAdvice }[] = [
   {
-    upTo: 0.15,
+    upTo: 0.10,
     value: {
       label: 'Very soft',
       advice: 'May not reach you over traffic, a fan, or a partner breathing.',
@@ -32,7 +37,7 @@ const BANDS: { upTo: number; value: LevelAdvice }[] = [
     },
   },
   {
-    upTo: 0.35,
+    upTo: 0.30,
     value: {
       label: 'Gentle',
       advice: 'Enough to notice without pulling you awake. A good place to start.',
@@ -40,10 +45,10 @@ const BANDS: { upTo: number; value: LevelAdvice }[] = [
     },
   },
   {
-    upTo: 0.7,
+    upTo: 0.50,
     value: {
       label: 'Clear',
-      advice: 'Carries through deeper sleep. Worth trying if the gentle setting gets slept through.',
+      advice: 'Carries through deeper sleep. Worth trying if gentle gets slept through.',
       tone: 'good',
     },
   },
@@ -51,7 +56,7 @@ const BANDS: { upTo: number; value: LevelAdvice }[] = [
     upTo: 1,
     value: {
       label: 'Loud',
-      advice: 'More likely to startle you than to wake you gently.',
+      advice: 'Broadband soundscapes like rain and ocean turn to hiss up here.',
       tone: 'high',
     },
   },

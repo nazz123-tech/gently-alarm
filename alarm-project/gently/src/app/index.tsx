@@ -11,6 +11,7 @@ import { WakeProgression } from '@/components/WakeProgression';
 import { WakeSchedule } from '@/components/WakeSchedule';
 import { WakeTimePicker } from '@/components/WakeTimePicker';
 import { WAKE_WINDOW_MINUTES } from '@/lib/alarm';
+import { nextAlarmAt } from '@/lib/schedule';
 import { textStyles } from '@/theme';
 
 /** The days of the week, indexed the way `Date.getDay()` does it. */
@@ -38,7 +39,10 @@ export default function AppPage() {
   const [selectedWeekday, setSelectedWeekday] = useState(() => new Date().getDay());
   const [paused, setPaused] = useState(false);
   const [soundscapeId, setSoundscapeId] = useState('soft-rain');
-  const [level, setLevel] = useState(0.45); // 18 dB, as in the reference
+  // 11 dB. The reference design shows 18, but on a phone that turns rain and
+  // ocean into hiss — they are broadband, so past a point they stop sounding
+  // like water and start sounding like static.
+  const [level, setLevel] = useState(0.28);
 
   // Once every half minute, not every second. The only thing that shows
   // seconds is NowBlock, which keeps its own timer; everything here works in
@@ -55,6 +59,11 @@ export default function AppPage() {
       times.map((existing, weekday) => (weekday === selectedWeekday ? minutes : existing)),
     );
   }
+
+  // The one number the lock screen needs: when the alarm actually goes off.
+  // Everything it shows — the countdown, the window, which state it is in — is
+  // worked out from this against the real clock.
+  const nextAlarm = nextAlarmAt(now, wakeTimes);
 
   const dayLabel = WEEKDAY_LABELS[selectedWeekday];
   const selectedWakeMinutes = wakeTimes[selectedWeekday];
@@ -106,21 +115,28 @@ export default function AppPage() {
             Light rises before sound
           </Text>
 
-          {/* Temporary, until the lock screen is a real iOS one. "Preview wake"
-              opens it straight into the wake window so the ramp can be heard
-              without waiting for a real alarm. */}
+          {/* Temporary, until the lock screen is a real iOS one.
+              "Lock screen" opens it for the alarm that is actually set, running
+              off the clock. "Test fade" opens it inside the wake window and
+              runs the same fade over one minute instead of thirty, which is the
+              only way to hear the quiet opening without sitting through it. */}
           <View className="flex-row gap-5">
             {(['armed', 'window'] as const).map((openAs) => (
               <Link
                 key={openAs}
                 href={{
                   pathname: '/lock',
-                  params: { soundscape: soundscapeId, level: String(level), state: openAs },
+                  params: {
+                    soundscape: soundscapeId,
+                    level: String(level),
+                    state: openAs,
+                    alarmAt: String(nextAlarm.getTime()),
+                  },
                 }}
                 asChild>
                 <Pressable accessibilityRole="button" hitSlop={8}>
                   <Text style={textStyles.chipLabel} className="text-ink-secondary">
-                    {openAs === 'armed' ? 'Lock screen' : 'Preview wake'}
+                    {openAs === 'armed' ? 'Lock screen' : 'Test fade · 1 min'}
                   </Text>
                 </Pressable>
               </Link>

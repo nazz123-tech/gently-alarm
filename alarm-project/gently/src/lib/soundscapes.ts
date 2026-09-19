@@ -43,13 +43,6 @@ export const SOUNDSCAPES: Soundscape[] = [
     bedWithChime: 'Forest + chime',
   },
   {
-    id: 'summer-storm',
-    name: 'Summer Storm',
-    subtitle: 'far-off thunder, steady rain',
-    bed: 'Rain and far thunder',
-    bedWithChime: 'Thunder + chime',
-  },
-  {
     id: 'dawn-chorus',
     name: 'Dawn Chorus',
     subtitle: 'first light, waking birds',

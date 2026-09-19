@@ -12,12 +12,8 @@ import type { SkyState } from '@/theme';
  */
 export type AlarmState = 'armed' | 'window' | 'ringing' | 'snoozed' | 'stopped';
 
-/** The alarm itself. Hard-coded until settings exist. */
-export const ALARM_TIME = '7:42';
-export const WAKE_WINDOW = '7:30 – 8:00';
 /** How long the wake window lasts, in minutes. */
 export const WAKE_WINDOW_MINUTES = 30;
-export const SOUNDSCAPE = 'Soft Rain';
 
 /**
  * Each snooze is shorter than the last, which is the whole idea — three
@@ -60,13 +56,20 @@ export type ScreenContent = {
 
 type ScreenInput = {
   state: AlarmState;
-  /** Seconds until the wake window opens. */
+  /** The alarm time as `HH:mm`, worked out from the real clock. */
+  alarmLabel: string;
+  /** The wake window, e.g. `07:12 – 07:42`. */
+  windowLabel: string;
+  soundscapeName: string;
+  /** Seconds until the alarm goes off. */
   secondsLeft: number;
   /** Seconds until the alarm rings again. */
   snoozeLeft: number;
   snoozesUsed: number;
   /** How loud the soundscape is right now, 0-100, while in the window. */
   windowLevelPercent: number;
+  /** How far into the wake window we are, in whole minutes. */
+  minutesIntoWindow: number;
 };
 
 /**
@@ -77,10 +80,14 @@ type ScreenInput = {
  */
 export function describeScreen({
   state,
+  alarmLabel,
+  windowLabel,
+  soundscapeName,
   secondsLeft,
   snoozeLeft,
   snoozesUsed,
   windowLevelPercent,
+  minutesIntoWindow,
 }: ScreenInput): ScreenContent {
   switch (state) {
     case 'armed':
@@ -88,7 +95,7 @@ export function describeScreen({
         label: 'Getting up in',
         clock: formatCountdown(secondsLeft),
         clockSize: 'full',
-        sub: [SOUNDSCAPE, WAKE_WINDOW],
+        sub: [soundscapeName, windowLabel],
         sky: 'night',
         showTray: true,
       };
@@ -96,9 +103,9 @@ export function describeScreen({
     case 'window':
       return {
         label: 'Waking you gently',
-        clock: ALARM_TIME,
+        clock: alarmLabel,
         clockSize: 'small',
-        sub: [SOUNDSCAPE, `${windowLevelPercent}%`],
+        sub: [soundscapeName, `${windowLevelPercent}%`],
         sky: 'dawn',
         showTray: true,
       };
@@ -106,9 +113,9 @@ export function describeScreen({
     case 'ringing':
       return {
         label: 'Good morning',
-        clock: ALARM_TIME,
+        clock: alarmLabel,
         clockSize: 'full',
-        sub: [SOUNDSCAPE, '16 min into your window'],
+        sub: [soundscapeName, `${minutesIntoWindow} min into your window`],
         sky: 'dawn',
         showTray: true,
       };
@@ -126,9 +133,9 @@ export function describeScreen({
     case 'stopped':
       return {
         label: 'Up at',
-        clock: ALARM_TIME,
+        clock: alarmLabel,
         clockSize: 'full',
-        sub: ['7 h 12 m asleep', '16 min into the window'],
+        sub: [soundscapeName, `${minutesIntoWindow} min into your window`],
         sky: 'day',
         // Nothing left to stop, so the tray goes away entirely.
         showTray: false,
