@@ -76,8 +76,14 @@ const palette = {
     text: '#FFFFFF',
     button: 'rgba(255,255,255,0.13)',
     buttonOff: 'rgba(255,255,255,0.07)',
-    track: 'rgba(255,255,255,0.07)',
-    trackFill: 'rgba(255,255,255,0.17)',
+    /**
+     * The slide-to-stop track and its fill. The prototype uses 0.07 against
+     * 0.17, which is only 0.10 of alpha between them — fine on a desktop
+     * monitor, close to invisible on a phone. Widened after testing on device:
+     * the fill is now about five times the track rather than twice it.
+     */
+    track: 'rgba(255,255,255,0.06)',
+    trackFill: 'rgba(255,255,255,0.32)',
     homeBar: 'rgba(255,255,255,0.35)',
   },
 };

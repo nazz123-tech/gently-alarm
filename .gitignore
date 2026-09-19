@@ -1,0 +1,7 @@
+# Raw sound downloads from ZapSplat.
+#
+# These are re-downloadable from zapsplat.com (see context/SOUND_SHORTLIST.md
+# for the exact titles) and are superseded by the trimmed, crossfade-looped
+# versions in context/sounds/edited/, which are committed. Keeping ~17 MB of
+# source MP3s out of the history keeps the repo small.
+alarm-project/context/sounds/*.mp3

@@ -130,3 +130,265 @@ There is one ticker for the whole screen, not one per state, and it only runs in
 - The state picker row is still temporary scaffolding, same as the prototype's row of buttons under the phone. It comes out once alarms can really be scheduled.
 
 **Next:** step 6, the alarm setup screen — the rotary time picker from `context/Gradual-Awakening-Rotary-Awakening-Setup-2.png`.
+
+## Step 6: Rotary time picker (2026-09-17)
+
+**Done**
+- `src/lib/dial.ts` — the dial maths. It is a 24-hour dial: one full turn is a day, `00:00` at the top, running clockwise, snapping to 5 minutes (which is why the reference labels the end `23:55`, not `24:00`).
+- `src/components/RotaryDial.tsx` — the ring, the twelve tick marks, the handle and the readout. Drag anywhere on it to set the time.
+- `src/app/setup.tsx` — a new route holding the picker and the card around it: the title, the "30 min" chip, the line about five sounds, and the `00:00 / 24 hour dial / 23:55` footer.
+- `src/lib/time.ts` — added `formatDialTime()` (`HH:mm`, hour padded so the readout does not jump about).
+- `src/app/index.tsx` — a temporary "set alarm" chip to reach the new screen.
+
+**How it's kept simple**
+The filled part of the ring is not a hand-built SVG arc path. It is an ordinary circle with a dash pattern: one dash exactly as long as the part that should be filled, then a gap long enough to swallow the rest, turned a quarter turn anticlockwise so the dash starts at the top instead of at 3 o'clock. Two numbers and a rotation, no arc flags.
+
+Turning a touch into a time is one line: `atan2(dx, -dy)` gives the angle clockwise from the top, and the rest is a ratio.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+- Checked the maths in a scratch script before building the component: the four compass points give `00:00 / 06:00 / 12:00 / 18:00`, 15:30 lands on 232.50° (which is where the handle sits in the reference), and all 288 five-minute steps round-trip from time to angle and back exactly.
+
+**Needs a decision: the two references disagree on colour**
+`lock-screen-prototype.html` is warm — sunrise orange `#E8853F` on a brown-black. This rotary reference is cold — crimson red on a neutral near-black, with a much more technical, instrument-panel feel. They are two different design languages.
+
+I built the dial in the app's existing sunrise palette so it matches everything already there. If the red was the intended direction, that is a palette change rather than a rebuild — the dial reads its colours from `colors.accent`, so it is a small edit to `src/theme/palette.js`.
+
+**Not verified**
+- Not seen running. Worth checking the drag feels right, and that 260pt is a good size for the dial on your phone.
+
+**Note**
+- The chosen time only lives on the setup screen. Sharing it with the lock screen needs somewhere for settings to live (React context, a store, or straight to Supabase), which is a decision worth making deliberately rather than in passing.
+
+**Next:** step 7, either wiring settings so the two screens share one alarm, or the awakening cycle list from the same reference.
+
+## Step 6a: Slide-to-stop contrast (2026-09-17)
+
+**Done**
+- `src/theme/palette.js` — widened the gap between the slide track and its fill after you tested it on the phone. The prototype uses `0.07` against `0.17`, only 0.10 of alpha apart; the fill is now `0.32` against a `0.06` track, so it is about five times the track rather than twice it. The reason is written next to the values so nobody "fixes" them back to the prototype's numbers later.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export`: builds clean
+- Only `SlideToStop.tsx` reads these two colours, so nothing else changed appearance.
+
+**Note**
+- If it still reads too faint while actually waking up, the next thing to try is a bright leading edge on the fill rather than pushing the whole fill brighter — it shows where the drag has got to without making the control shout.
+
+## Step 7: One app page, bare lock screen (2026-09-17)
+
+Restructure after your note that choosing a sound and setting the alarm belong on one page, not on the lock screen.
+
+**Routes changed**
+- `src/app/index.tsx` is now the app page — everything you set, in the order of `context/app-looklike.png`.
+- `src/app/lock.tsx` is the lock screen. It was `index.tsx`.
+- `src/app/setup.tsx` is gone; the rotary dial folded into the app page.
+- Deleted `CollapseButton.tsx` and `MuteButton.tsx`. Both are in git history if mute ever comes back to the lock screen.
+
+**Lock screen, stripped**
+Left: the sunrise sky, the dot clock, the one line saying what is set, the breathing dot while the sound rises, the snooze pill while ringing, and slide-to-stop. Removed: the collapse chevron, the mute button, and the dev state picker. `describeScreen()` lost its `collapsed`, `muted` and `showChevron` fields as a result, so it is shorter than it was.
+
+**App page, top to bottom**
+- `AppHeader` — badge, name, 24h chip, and a dot that lights when an alarm is set.
+- `NowBlock` — the date, a real live clock, and "a gentle start" with the seconds.
+- `NextAwakening` — the next alarm and a switch to pause it without losing it.
+- `WakeProgression` — a three-beat summary of the window.
+- `WakeTimePicker` — the rotary dial from step 6, now in its card.
+- `AwakeningCycle` — the five sounds that rise.
+- `WakeSchedule` — the coming week, a day selectable.
+- `Atmosphere` — the soundscape picker and a draggable level bar.
+- Plus `SectionHeader`, `Toggle` and `LevelMeter` as shared pieces, and the extra icons.
+
+**Two things that fell out nicely**
+1. **No store needed.** The open question from step 6 was where settings should live so two screens could share them. Since it is one page, plain `useState` in `index.tsx` covers it — the dial, the cycle, the week and the progression strip all read the same number.
+2. **The cycle is derived, not stored.** The reference wakes at 15:30 with a 30-minute window and lists steps at 15:00, 15:08, 15:15, 15:23, 15:30. That is exactly the window split into four and rounded, which I checked before writing the code. So `buildCycle()` works the times out from the wake time and rolling the dial moves the whole cycle, the progression strip and the schedule with it. Nothing can drift out of step because there is only one number.
+
+**A bug found and fixed**
+`LevelMeter` held its measured width in a plain local variable. Setting the level re-renders the component and `onLayout` only fires when the layout actually changes, so the width would have been back to zero by the second drag and the bar would have gone dead after one touch. It is a ref now, with the reason written next to it.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+- Confirmed the derived cycle times match the reference exactly before building the component
+
+**Adapted rather than copied**
+- The reference is branded "Gradual / Awakening — Bedroom Unit 01". The layout is theirs, the name is ours.
+- The reference crams the wake progression into one row where labels wrap mid-word. Three even columns here instead.
+- The reference shows a different wake time per day in the week list. Per-day times are a real feature, not a layout change, so every row shows the one time the dial is set to for now.
+- Still the sunrise palette, not the reference's crimson. That question from step 6 is still open.
+
+**Not verified**
+- Not seen running. The app page is long, so the things to check are the scroll and spacing, whether the dial is comfortable to roll mid-page, and whether the level bar is easy enough to hit.
+
+**Next:** step 8, real audio — `context/sounds/` is waiting, and you have three ZapSplat candidates picked out.
+
+## Step 7a: Slimmer slider, and opening the app after stopping (2026-09-18)
+
+**Done**
+- `src/components/SlideToStop.tsx` — track height 34 → 24. The fill carries the feedback now, so the bar itself does not need the bulk.
+- `src/app/lock.tsx` — once the alarm is stopped, the finished screen holds for 5 seconds and then the app page opens.
+
+**One decision**
+It navigates with `replace`, not `push`. If it pushed, a back swipe would land on the lock screen of an alarm that is already finished — a dead screen with a countdown that no longer means anything. Replacing removes it from the history instead.
+
+The timer is cleared if the screen goes away first, so leaving early cannot fire a navigation into a screen that is no longer there.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+
+**Worth a look on the phone**
+- Whether 24pt is the right thinness, or it now reads as too easy to catch by accident. The stop threshold is still 78% of the track, so the distance to drag has not changed.
+- The five seconds are silent — the screen says "Up at 7:42" and then the app appears without warning. If that feels abrupt, a line like "opening Gently…" would fit under the sub-line, at the cost of one more thing on a screen you wanted bare.
+
+## Step 7b: iOS-thin slider, and saying what happens next (2026-09-18)
+
+**Done**
+- `src/components/SlideToStop.tsx` — rebuilt as a hairline track with a round knob, the shape iOS uses for its own sliders. Track 24 → 6pt, with a 28pt knob.
+- `src/app/lock.tsx` — "Opening Gently…" now sits under the sub-line once the alarm is stopped, so the jump to the app page is announced rather than sprung.
+
+**What changed in the slider, and why**
+- **The label moved above the track.** At 6pt there is no inside to put it in. It still fades as the knob travels.
+- **The knob is the thing you aim at.** A 6pt bar is too thin to grab; a 28pt knob is not. The track can be a hairline because nothing asks you to hit it.
+- **The touch area did not shrink with the track.** There is 18pt of `hitSlop` above and below, so the target stays roughly 44pt tall even though it looks like 6.
+- **The finger is measured from the middle of the knob**, not the edge of the track. Without that the knob jumps half its own width ahead of the fingertip the moment you touch it.
+- **Stopping still needs 78% of the travel**, unchanged. The control looks lighter; it is not easier to trigger by accident.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+
+**Not verified**
+- Not seen running. The thing to feel for is whether the knob stays under your thumb the whole way across — that is the part that is easy to get subtly wrong and impossible to see in a build log.
+
+## Step 8: A time per day, level guidance, cycle follows the sound (2026-09-18)
+
+Three features, before the audio goes in.
+
+### 1. A different wake time for each day
+- Times are stored **one per weekday, not one per date** (`wakeTimes[0]` is Sunday), so the week repeats: set Monday once and every Monday is set. That is how an alarm clock behaves, and it means the list never needs filling in again next week.
+- Tap a day in the schedule to select it; the dial then edits that day and leaves the rest alone.
+- `nextAlarmAt()` is no longer "today or tomorrow" — it walks forward day by day and returns the first alarm still ahead. It checks eight days rather than seven, so today's weekday coming round again is always a valid answer and the function can never fail to find one.
+- The day being edited is named in the section heading **and** above the dial. The dial sits a long way down a scrolling page, and a time picker that does not say what it is setting is a good way to change the wrong day's alarm.
+- The awakening cycle follows the day you are **editing**, not the next alarm — it is there to explain what the alarm you are setting will do. "Next awakening" at the top still shows the genuinely next one.
+
+### 2. Guidance on the level
+- `src/lib/level.ts` — four bands, each with a name and a sentence: **Very soft** ("may not reach you over traffic, a fan, or a partner breathing"), **Gentle** ("a good place to start"), **Clear** ("worth trying if the gentle setting gets slept through"), **Loud** ("more likely to startle you than to wake you gently").
+- Shown under the level bar, green in the middle of the range and amber at both ends, because both ends are a problem.
+- **Written down in the file, and worth repeating:** the 0–40 "dB" scale comes from the reference design. It is a relative level, not a measured sound pressure reading — what it actually sounds like depends on the phone, where it sits in the room, and the soundscape. The wording avoids claiming any real-world figure. Once real audio is in, this is worth revisiting against how the files actually sound.
+
+### 3. The cycle follows the atmosphere
+- Each soundscape now names the two middle steps of the cycle: Soft Rain gives "Rain on glass" and "Rain + chime", Ocean gives "Tide on sand" and "Tide + chime", and so on for all six.
+- Steps 1, 4 and 5 ("Soft breath", "Warm tone", "Wake alarm") are the same whatever you pick, so only two strings per soundscape were needed rather than thirty.
+- Switching the atmosphere now visibly changes the cycle list and the progression strip above it.
+
+**Cleanup**
+Removed `IconButton.tsx` and five icons that nothing used any more (the collapse chevron, the month arrows, the plus, the muted speaker). The month arrows and the plus were both dead controls that did nothing when tapped — with a weekly repeating schedule, month navigation has nothing to navigate. All in git history.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+- Checked `nextAlarmAt` against a week with three different times (Mon 06:30, weekdays 07:42, weekend 09:00): Friday evening correctly gives Saturday 09:00, and Sunday evening correctly rolls to Monday 06:30 rather than stopping at the weekend time.
+
+**Not verified**
+- Not seen running. Worth checking that selecting a day and rolling the dial feels connected given the distance between the two on screen — that is the part most likely to need a layout change rather than a logic one.
+
+**Next:** audio, once the files land in `context/sounds/`.
+
+## Step 8a: Two sections merged into one (2026-09-18)
+
+You spotted that "wake progression" and "awakening cycle" were the same thing shown twice — the strip was just the first, middle and last of the list below it. They are one section now.
+
+**Done**
+- `WakeProgression.tsx` rewritten as the single section. Deleted `AwakeningCycle.tsx`.
+- Everything the cycle had and the strip did not: all five steps instead of three, the numbered circles, the detail line under each name, the level percentage, and the last step picked out in colour as the alarm proper.
+- **Added, from neither:** a small bar on each row showing how loud that step is. That is what the strip was really for — seeing the sound rise — and now you get it without reading a single number, across all five steps rather than three.
+- Moved it below the dial, since it explains what the dial just set.
+
+**Cleanup**
+Removed `SpeakerIcon`, `SunriseIcon` and `WavesIcon`, which only the old three-beat strip used. `icons.tsx` is down to `MoonIcon`. All in git history if the icons are wanted back.
+
+**Checks**
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios --platform web`: both bundles build clean
+- The page is now seven sections: header, now, next awakening, set awakening (dial), wake progression, wake schedule, atmosphere.
+
+**Not verified**
+- Not seen running. The level bars are the new part — worth checking they read as a rise down the list rather than as clutter next to the percentages. If they compete, dropping the percentage and keeping the bar is the better trade.
+
+## Step 9: Sound assets, and the first audio in the app (2026-09-19)
+
+### The files
+Eight MP3s arrived in `context/sounds/`. Processed with `afconvert` and `afinfo`
+(both built into macOS) plus numpy — no ffmpeg, no CloudConvert. Output is in
+`context/sounds/edited/`.
+
+**Five beds trimmed and crossfade-looped**, exported to M4A/AAC:
+
+| Bed | Length | Seam after |
+| --- | --- | --- |
+| soft-rain | 170.2s | 0.2 dB |
+| ocean | 88.6s | 0.9 dB |
+| forest | 81.4s | 1.0 dB |
+| summer-storm | 188.1s | 0.6 dB |
+| dawn-chorus | 141.3s | 0.5 dB |
+
+**What actually fixed the seams was not what I predicted.** I expected MP3
+encoder padding to be the problem. It was not: the big mismatches were the
+recordings' own fade-ins and fade-outs. Trimming 0.08–1.22s off the ends took
+the dawn chorus from 16.1 dB to 9.8 and the storm from 24.2 to 3.9; the
+crossfade then finished the job. Worth remembering for the remaining files —
+trim first, and only crossfade what is still wrong.
+
+Also worth recording: the dawn chorus file has **LOOP** in its own filename and
+arrived with a 16 dB seam. A title is not a measurement.
+
+### Held back
+- **Fireplace** — 35s with a 14.5 dB spit at 6.8s. Looping it turns a random
+  fire into a metronome. Needs a longer recording, not processing.
+- **Warm tone and wake alarm** — still to download. Two files, not one; the warm
+  tone never arrived either.
+
+### The dial tick — the first sound the app actually plays
+- `assets/sounds/dial_tick.m4a` and `dial_tock.m4a`, 60ms each, cut from a
+  wristwatch recording whose transient decays to -40 dB in 6ms.
+- `src/lib/useDialTick.ts` — plays them alternately. A mechanical watch has a
+  tick and a tock; swapping between them sounds like a movement rather than one
+  sample on repeat.
+- `RotaryDial` fires it on each 5-minute step.
+
+**Three things in there worth knowing:**
+1. **It is a one-shot per step, not a loop.** An earlier attempt made a 2-second
+   looping tick, which was wrong: a loop runs at its own tempo no matter how
+   fast your thumb moves. The rate has to come from the gesture.
+2. **The rate is re-spaced, not resampled.** Speeding a tick up by resampling
+   raises its pitch and turns a wristwatch into a toy. The transients are placed
+   at a new spacing instead, so each one is exactly as recorded.
+3. **The tick only fires on a real change, and that fixed a performance bug too.**
+   The dial snaps to 5 minutes, so a slow drag reported the same value dozens of
+   times in a row. Each of those called `onChange`, and the parent's handler
+   builds a new array with `.map()` — a new object every time, so React
+   re-rendered the whole page for a change that had not happened. Comparing
+   against the last announced value stops both the audio spam and the renders.
+
+A 30ms floor between ticks caps a fast flick, which would otherwise cross a
+hundred of the 288 steps in half a second and buzz.
+
+### Checks
+- `npx tsc --noEmit`: passes
+- `npx expo export --platform ios`: builds; both audio files confirmed in the
+  bundle by MD5 (they are stored hash-named with no extension, so searching for
+  `*.m4a` in `dist` finds nothing and proves nothing).
+
+### Not verified
+- How any of it sounds. The seams are measured, not heard; the tick has never
+  been played. Both need the phone.
+
+### One wart to revisit
+`expo-audio` defaults to `playsInSilentMode: true`, so the dial tick will click
+even with the phone muted. That default is right for the alarm and wrong for a
+UI sound, and the setting is global — so when the alarm audio lands, the two
+will need separating.
+
+**Next:** the alarm audio itself — the beds looping under the wake window with
+the level ramp the progression already describes.

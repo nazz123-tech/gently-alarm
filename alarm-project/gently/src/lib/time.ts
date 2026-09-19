@@ -39,3 +39,15 @@ export function formatSnooze(totalSeconds: number): string {
 
   return `${pad(minutes)}:${pad(seconds)}`;
 }
+
+/**
+ * A time of day for the rotary dial, as `HH:mm` on a 24-hour clock.
+ * The hour is padded here — the reference shows `09:20`, not `9:20` — because
+ * the digits sit in a fixed-width readout that should not jump about.
+ */
+export function formatDialTime(minutesOfDay: number): string {
+  const hours = Math.floor(minutesOfDay / 60);
+  const minutes = minutesOfDay % 60;
+
+  return `${pad(hours)}:${pad(minutes)}`;
+}

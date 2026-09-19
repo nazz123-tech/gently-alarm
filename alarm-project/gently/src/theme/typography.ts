@@ -22,6 +22,17 @@ export const fontFamily = {
 } as const;
 
 export const textStyles = {
+  /**
+   * The big clock at the top of the app page — `app-looklike.png`.
+   * Tight tracking and a line height equal to the size, so it sits close to
+   * the rule underneath it.
+   */
+  display: {
+    fontFamily: fontFamily.sansBold,
+    fontSize: 64,
+    lineHeight: 64,
+    letterSpacing: -2,
+  },
   /** Page title — prototype `h1`. */
   title: {
     fontFamily: fontFamily.sansBold,

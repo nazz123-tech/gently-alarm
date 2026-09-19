@@ -15,6 +15,8 @@ export type AlarmState = 'armed' | 'window' | 'ringing' | 'snoozed' | 'stopped';
 /** The alarm itself. Hard-coded until settings exist. */
 export const ALARM_TIME = '7:42';
 export const WAKE_WINDOW = '7:30 – 8:00';
+/** How long the wake window lasts, in minutes. */
+export const WAKE_WINDOW_MINUTES = 30;
 export const SOUNDSCAPE = 'Soft Rain';
 
 /**
@@ -35,7 +37,13 @@ export function snoozeButtonLabel(snoozesUsed: number): string {
   return `Snooze ${nextSnoozeSeconds(snoozesUsed) / 60} min`;
 }
 
-/** Everything the screen needs to know to draw itself. */
+/**
+ * Everything the lock screen needs to know to draw itself.
+ *
+ * The lock screen is deliberately bare: the clock, one line saying what is
+ * set, and the slide to stop. Choosing a sound or setting the alarm happens on
+ * the app page, not here.
+ */
 export type ScreenContent = {
   /** The small caps line above the clock. */
   label: string;
@@ -46,15 +54,12 @@ export type ScreenContent = {
   /** Parts of the line under the clock, joined with a dot. */
   sub: string[];
   sky: SkyState;
-  showChevron: boolean;
+  /** False once the alarm is done — there is nothing left to stop. */
   showTray: boolean;
 };
 
 type ScreenInput = {
   state: AlarmState;
-  /** Countdown collapsed to the plain alarm time. Only applies when armed. */
-  collapsed: boolean;
-  muted: boolean;
   /** Seconds until the wake window opens. */
   secondsLeft: number;
   /** Seconds until the alarm rings again. */
@@ -70,8 +75,6 @@ type ScreenInput = {
  */
 export function describeScreen({
   state,
-  collapsed,
-  muted,
   secondsLeft,
   snoozeLeft,
   snoozesUsed,
@@ -79,12 +82,11 @@ export function describeScreen({
   switch (state) {
     case 'armed':
       return {
-        label: collapsed ? 'Alarm set for' : 'Getting up in',
-        clock: collapsed ? ALARM_TIME : formatCountdown(secondsLeft),
-        clockSize: collapsed ? 'small' : 'full',
+        label: 'Getting up in',
+        clock: formatCountdown(secondsLeft),
+        clockSize: 'full',
         sub: [SOUNDSCAPE, WAKE_WINDOW],
         sky: 'night',
-        showChevron: true,
         showTray: true,
       };
 
@@ -93,9 +95,8 @@ export function describeScreen({
         label: 'Waking you gently',
         clock: ALARM_TIME,
         clockSize: 'small',
-        sub: [SOUNDSCAPE, muted ? 'muted' : '12%'],
+        sub: [SOUNDSCAPE, '12%'],
         sky: 'dawn',
-        showChevron: false,
         showTray: true,
       };
 
@@ -106,7 +107,6 @@ export function describeScreen({
         clockSize: 'full',
         sub: [SOUNDSCAPE, '16 min into your window'],
         sky: 'dawn',
-        showChevron: false,
         showTray: true,
       };
 
@@ -117,7 +117,6 @@ export function describeScreen({
         clockSize: 'small',
         sub: [`Snooze ${snoozesUsed} of ${MAX_SNOOZES}`, 'each one shorter'],
         sky: 'dawn',
-        showChevron: false,
         showTray: true,
       };
 
@@ -128,8 +127,7 @@ export function describeScreen({
         clockSize: 'full',
         sub: ['7 h 12 m asleep', '16 min into the window'],
         sky: 'day',
-        showChevron: false,
-        // Nothing left to stop or mute, so the tray goes away entirely.
+        // Nothing left to stop, so the tray goes away entirely.
         showTray: false,
       };
   }

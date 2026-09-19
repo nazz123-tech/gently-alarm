@@ -1,4 +1,4 @@
-import { Text, View, type LayoutChangeEvent } from 'react-native';
+import { View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -16,8 +16,12 @@ import { SLIDE_RETURN_MS, colors, textStyles } from '@/theme';
  */
 const STOP_THRESHOLD = 0.78;
 
-/** Height of the track, and therefore its corner radius. */
-const TRACK_HEIGHT = 34;
+/**
+ * A hairline track with a round knob, the shape iOS uses for its own sliders.
+ * The knob is what you aim at, so the track itself can stay this thin.
+ */
+const TRACK_HEIGHT = 6;
+const KNOB_SIZE = 28;
 
 type SlideToStopProps = {
   /** Called once the drag is released past the threshold. */
@@ -26,11 +30,14 @@ type SlideToStopProps = {
 };
 
 /**
- * Drag-to-the-right to stop the alarm.
+ * Drag the knob to the right to stop the alarm.
  *
- * Tracking the finger has to happen on the UI thread or the fill lags behind,
+ * Tracking the finger has to happen on the UI thread or the knob lags behind,
  * so the progress lives in a Reanimated shared value and the gesture updates it
  * directly. `onStop` is the only thing that crosses back to React.
+ *
+ * The label sits above the track rather than inside it — at 6pt there is no
+ * inside to put it in.
  */
 export function SlideToStop({ onStop, label = 'Slide to stop' }: SlideToStopProps) {
   const progress = useSharedValue(0);
@@ -41,7 +48,7 @@ export function SlideToStop({ onStop, label = 'Slide to stop' }: SlideToStopProp
   };
 
   const pan = Gesture.Pan()
-    // Start filling the moment a finger lands, like the prototype's pointerdown.
+    // Respond the moment a finger lands, like the prototype's pointerdown.
     .minDistance(0)
     .onBegin((event) => {
       progress.value = positionToProgress(event.x, trackWidth.value);
@@ -58,59 +65,82 @@ export function SlideToStop({ onStop, label = 'Slide to stop' }: SlideToStopProp
       progress.value = withTiming(0, { duration: SLIDE_RETURN_MS });
     });
 
-  const fillStyle = useAnimatedStyle(() => ({
-    width: `${progress.value * 100}%`,
+  /** How far the knob can travel: the track, less its own width. */
+  const travel = useAnimatedStyle(() => ({
+    transform: [{ translateX: progress.value * Math.max(0, trackWidth.value - KNOB_SIZE) }],
   }));
 
-  // The label fades as the fill passes under it, but never all the way out.
+  // The filled part runs from the left to the middle of the knob.
+  const fillStyle = useAnimatedStyle(() => ({
+    width: progress.value * Math.max(0, trackWidth.value - KNOB_SIZE) + KNOB_SIZE / 2,
+  }));
+
+  // The label fades as the knob travels, but never all the way out.
   const labelStyle = useAnimatedStyle(() => ({
     opacity: 1 - progress.value * 0.8,
   }));
 
   return (
-    <GestureDetector gesture={pan}>
-      <View
-        onLayout={onLayout}
-        accessibilityRole="adjustable"
-        accessibilityLabel={label}
-        accessibilityActions={[{ name: 'activate' }]}
-        onAccessibilityAction={onStop}
-        style={{
-          flex: 1,
-          height: TRACK_HEIGHT,
-          borderRadius: TRACK_HEIGHT / 2,
-          overflow: 'hidden',
-          backgroundColor: colors.onSky.track,
-          justifyContent: 'center',
-        }}>
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              bottom: 0,
-              backgroundColor: colors.onSky.trackFill,
-            },
-            fillStyle,
-          ]}
-        />
-        <Animated.Text
-          style={[
-            textStyles.slideLabel,
-            { color: colors.onSky.text, textAlign: 'center' },
-            labelStyle,
-          ]}>
-          {label}
-        </Animated.Text>
-      </View>
-    </GestureDetector>
+    <View style={{ gap: 12 }}>
+      <Animated.Text
+        style={[textStyles.slideLabel, { color: colors.onSky.text, textAlign: 'center' }, labelStyle]}>
+        {label}
+      </Animated.Text>
+
+      <GestureDetector gesture={pan}>
+        <View
+          onLayout={onLayout}
+          accessibilityRole="adjustable"
+          accessibilityLabel={label}
+          accessibilityActions={[{ name: 'activate' }]}
+          onAccessibilityAction={onStop}
+          // The track is 6pt but the touch area is a comfortable one.
+          hitSlop={{ top: 18, bottom: 18 }}
+          style={{ height: KNOB_SIZE, justifyContent: 'center' }}>
+          <View
+            style={{
+              height: TRACK_HEIGHT,
+              borderRadius: TRACK_HEIGHT / 2,
+              backgroundColor: colors.onSky.track,
+              overflow: 'hidden',
+            }}>
+            <Animated.View
+              style={[
+                { height: '100%', backgroundColor: colors.onSky.trackFill },
+                fillStyle,
+              ]}
+            />
+          </View>
+
+          <Animated.View
+            style={[
+              {
+                position: 'absolute',
+                width: KNOB_SIZE,
+                height: KNOB_SIZE,
+                borderRadius: KNOB_SIZE / 2,
+                backgroundColor: colors.onSky.text,
+              },
+              travel,
+            ]}
+          />
+        </View>
+      </GestureDetector>
+    </View>
   );
 }
 
-/** Where the finger is, as 0–1 along the track. Runs on the UI thread. */
+/**
+ * Where the knob should sit, as 0–1.
+ *
+ * The finger is measured from the middle of the knob, not the edge of the
+ * track, so the knob lands under the fingertip instead of jumping half its own
+ * width ahead of it. Runs on the UI thread.
+ */
 function positionToProgress(x: number, width: number): number {
   'worklet';
-  if (width <= 0) return 0;
-  return Math.min(1, Math.max(0, x / width));
+  const travel = width - KNOB_SIZE;
+  if (travel <= 0) return 0;
+
+  return Math.min(1, Math.max(0, (x - KNOB_SIZE / 2) / travel));
 }
