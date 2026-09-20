@@ -10,7 +10,12 @@
     "backgroundColor": "#0A0605",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.gently.alarm"
+      "bundleIdentifier": "com.gently.alarm",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {

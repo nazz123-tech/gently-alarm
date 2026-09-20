@@ -72,6 +72,19 @@ type WakeSoundOptions = {
   progress: number | null;
   /** True once the alarm is actually ringing. */
   ringing: boolean;
+  /**
+   * Keep the audio session open while waiting for the window.
+   *
+   * iOS suspends a backgrounded app that is not playing anything. Set the
+   * alarm at eleven, lock the phone, and by midnight the app is asleep and
+   * will not wake itself at 07:12 to start fading. Holding the soundscape
+   * playing at zero volume keeps the session alive so it can.
+   *
+   * This is the cost of a gentle wake with the screen off: a decode running
+   * all night. Nothing is audible, and the alarm remains the backstop if iOS
+   * reclaims the session anyway.
+   */
+  holdSession: boolean;
 };
 
 /**
@@ -82,7 +95,13 @@ type WakeSoundOptions = {
  * and is allowed to be quiet; the alarm is the thing that has to work if the
  * gentle part did not, so it plays at full volume and ignores the ramp.
  */
-export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: WakeSoundOptions) {
+export function useWakeSound({
+  soundscapeId,
+  maxVolume,
+  progress,
+  ringing,
+  holdSession,
+}: WakeSoundOptions) {
   const bed = useAudioPlayer(bedFor(soundscapeId));
   const chime = useAudioPlayer(CHIME);
   const warmTone = useAudioPlayer(WARM_TONE);
@@ -126,9 +145,17 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
   // The soundscape follows the ramp, and the two layers ride on top of it.
   useEffect(() => {
     if (progress === null) {
-      bed.pause();
       chime.pause();
       warmTonesPlayed.current = 0;
+
+      if (holdSession) {
+        // Playing, but silent: enough to keep iOS from suspending us.
+        bed.volume = 0;
+        if (!bed.playing) bed.play();
+      } else {
+        bed.pause();
+      }
+
       return;
     }
 
@@ -168,7 +195,7 @@ export function useWakeSound({ soundscapeId, maxVolume, progress, ringing }: Wak
         .then(() => warmTone.play())
         .catch(() => {});
     }
-  }, [bed, chime, warmTone, progress, maxVolume]);
+  }, [bed, chime, warmTone, progress, maxVolume, holdSession]);
 
   // The alarm is the backstop, so it is not scaled by anything.
   useEffect(() => {

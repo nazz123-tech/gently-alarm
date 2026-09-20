@@ -175,6 +175,8 @@ export default function LockScreen() {
     // steps of not startling anybody.
     progress: state === 'window' ? windowProgress : state === 'ringing' ? 1 : null,
     ringing: state === 'ringing',
+    // Waiting for the window is exactly when iOS would otherwise suspend us.
+    holdSession: state === 'armed',
   });
 
   // Once it is stopped, hold the finished screen for a moment and then open

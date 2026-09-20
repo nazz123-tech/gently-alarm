@@ -1492,3 +1492,42 @@ setting — is still met, just once instead of twice.
 
 **Checks**
 - `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 21: Holding the audio session overnight (2026-09-20)
+
+Agreed on what is being built, so this is the first piece — chosen first
+because it is the riskiest assumption and the cheapest to test. Whether iOS
+keeps an audio session alive for eight hours is not something reading settles.
+
+**Two gaps found on the way**
+
+1. **`UIBackgroundModes` was never in `app.json`.** The iOS config had only an
+   icon and a bundle id, so `shouldPlayInBackground: true` did nothing in a
+   standalone build. It works in Expo Go because Expo Go's *own* Info.plist
+   declares the mode — which means the EAS build made earlier today has no
+   background audio at all, and nobody would have noticed until an alarm
+   silently failed. Now set to `["audio"]`.
+2. **The bed paused whenever the window was not running.** So while armed,
+   nothing played, and iOS suspends a backgrounded app that is playing nothing.
+   Set the alarm at eleven, lock the phone, and by midnight the app is asleep
+   and will not wake itself at 07:12 to start fading.
+
+**The change:** while armed, the soundscape plays at volume zero. Silent, but
+playing — which is what keeps the session alive. When the window opens the
+normal ramp takes over from there.
+
+That is the real cost of a gentle wake with the screen off: an audio decode
+running all night. It is also the behaviour App Review asks about, so it wants
+a straight answer in the submission when that day comes.
+
+**How to test it, and it needs a night rather than a minute:** open the app, go
+to the lock screen, set an alarm far enough ahead to sleep through, lock the
+phone and leave it. If the soundscape fades up in the morning, the session
+survived. If there is silence, it did not — and the gentle wake cannot work
+with the screen off, which would make AlarmKit the main feature rather than the
+backstop.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+- `UIBackgroundModes` confirmed in the resolved prebuild config, not just in
+  the file — a plugin could have overwritten it
