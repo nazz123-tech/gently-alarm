@@ -1288,3 +1288,40 @@ longer fits.
 
 **Not verified**
 - That it survives a real reload on the phone. That needs you.
+
+## Step 18a: The lock screen no longer keeps its own defaults (2026-09-20)
+
+Persistence exposed a second set of defaults hiding in `lock.tsx`:
+
+    const maxVolume = Number(params.level ?? 0.45);
+    const alarmAt = Number(params.alarmAt) || Date.now() + 8 * 60 * MINUTE;
+    const soundscape = findSoundscape(params.soundscape ?? '');
+
+All three were wrong. **0.45 is the old level** — the one dropped in step 12b
+for turning rain into hiss — so opening the lock screen without a level
+parameter played it at the volume that was specifically complained about. The
+alarm fell back to an invented eight hours from now, and the soundscape
+silently became whichever happens to be first in the list.
+
+They read from the stored settings now. The link from the app page still
+carries everything, and parameters still win where present; what changed is
+what happens when one is missing.
+
+**This also makes the screen stand on its own.** Opened cold with no
+parameters at all, it works out the real next alarm from the stored wake times
+and uses the chosen soundscape and level. That is exactly how it will be
+reached once AlarmKit fires it with the app closed — there is no app page in
+that situation to pass anything in.
+
+`alarmAt` is memoised on the parameter and the stored wake times, so it settles
+once when the settings finish loading rather than drifting.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+**Verified on the phone (2026-09-20):** persistence survives a force-quit, and
+the chime sits correctly against Fireplace. That second one was the open
+question from step 14 — the chime plays at one fixed share of the bed's volume,
+tuned against beds that sit 10 dB louder, so Fireplace was where a single
+number was most likely to be wrong. It is not, which means the layer gains hold
+across the whole range.

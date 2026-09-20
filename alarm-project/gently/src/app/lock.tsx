@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -19,7 +19,8 @@ import {
 } from '@/lib/alarm';
 import { CYCLE_LENGTH, stepOfProgress } from '@/lib/cycle';
 import { levelAt } from '@/lib/ramp';
-import { timeOfDay } from '@/lib/schedule';
+import { nextAlarmAt, timeOfDay } from '@/lib/schedule';
+import { useAlarmSettings } from '@/lib/settings';
 import { findSoundscape } from '@/lib/soundscapes';
 import { formatDialTime } from '@/lib/time';
 import { useWakeSound } from '@/lib/useWakeSound';
@@ -68,11 +69,29 @@ export default function LockScreen() {
     alarmAt?: string;
   }>();
 
-  const soundscape = findSoundscape(params.soundscape ?? '');
-  const maxVolume = Number(params.level ?? 0.45);
+  /**
+   * The link from the app page carries everything this screen needs. Anything
+   * it does not carry comes from the stored settings rather than from a
+   * default written here — there is one set of defaults in the app and this
+   * is not the place for a second copy of them.
+   *
+   * It also means the screen stands on its own: opened cold with no
+   * parameters, it still knows the real alarm, soundscape and level. That is
+   * how it will be reached once the alarm fires with the app closed.
+   */
+  const { settings } = useAlarmSettings();
+
+  const soundscape = findSoundscape(params.soundscape ?? settings.soundscapeId);
+  const maxVolume = params.level === undefined ? settings.level : Number(params.level);
 
   /** When the alarm goes off, as a timestamp. */
-  const alarmAt = Number(params.alarmAt) || Date.now() + 8 * 60 * MINUTE;
+  const alarmAt = useMemo(
+    () =>
+      params.alarmAt
+        ? Number(params.alarmAt)
+        : nextAlarmAt(new Date(), settings.wakeTimes).getTime(),
+    [params.alarmAt, settings.wakeTimes],
+  );
   const windowStart = alarmAt - WAKE_WINDOW_MINUTES * MINUTE;
 
   const [now, setNow] = useState(() => Date.now());
