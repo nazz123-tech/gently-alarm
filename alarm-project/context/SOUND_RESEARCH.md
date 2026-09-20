@@ -26,7 +26,8 @@ longer. Keep the copy short enough to sit under the alarm row next to a time ran
 
 Two more if the list ever needs stretching, both very quiet by nature and good
 candidates for the "barely audible first 90 seconds" ramp (backlog §04):
-**Snowfall** — hushed air, a distant creak of ice; **Autumn Wind** — leaves stirring,
+**Snowfall** — hushed air, a distant creak of ice
+; **Autumn Wind** — leaves stirring,
 a cool breeze.
 
 Notes:

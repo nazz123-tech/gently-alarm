@@ -12,13 +12,11 @@ import { WakeSchedule } from '@/components/WakeSchedule';
 import { WakeTimePicker } from '@/components/WakeTimePicker';
 import { WAKE_WINDOW_MINUTES } from '@/lib/alarm';
 import { nextAlarmAt } from '@/lib/schedule';
+import { useAlarmSettings } from '@/lib/settings';
 import { textStyles } from '@/theme';
 
 /** The days of the week, indexed the way `Date.getDay()` does it. */
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-
-/** What every day starts out set to, until you change one. */
-const DEFAULT_WAKE_MINUTES = 7 * 60 + 42; // 07:42
 
 /**
  * The app page — everything you set, on one screen, built from
@@ -33,16 +31,13 @@ const DEFAULT_WAKE_MINUTES = 7 * 60 + 42; // 07:42
  */
 export default function AppPage() {
   const [now, setNow] = useState(() => new Date());
-  const [wakeTimes, setWakeTimes] = useState<number[]>(() =>
-    Array.from({ length: 7 }, () => DEFAULT_WAKE_MINUTES),
-  );
+
+  // Everything you set is remembered between launches. The day you happen to
+  // be looking at is not — that is where you are in the app, not a setting.
+  const { settings, update } = useAlarmSettings();
+  const { wakeTimes, paused, soundscapeId, level } = settings;
+
   const [selectedWeekday, setSelectedWeekday] = useState(() => new Date().getDay());
-  const [paused, setPaused] = useState(false);
-  const [soundscapeId, setSoundscapeId] = useState('soft-rain');
-  // 11 dB. The reference design shows 18, but on a phone that turns rain and
-  // ocean into hiss — they are broadband, so past a point they stop sounding
-  // like water and start sounding like static.
-  const [level, setLevel] = useState(0.28);
 
   // Once every half minute, not every second. The only thing that shows
   // seconds is NowBlock, which keeps its own timer; everything here works in
@@ -55,9 +50,11 @@ export default function AppPage() {
 
   /** The dial edits one day at a time; the rest of the week is untouched. */
   function setWakeTimeForSelectedDay(minutes: number) {
-    setWakeTimes((times) =>
-      times.map((existing, weekday) => (weekday === selectedWeekday ? minutes : existing)),
-    );
+    update({
+      wakeTimes: wakeTimes.map((existing, weekday) =>
+        weekday === selectedWeekday ? minutes : existing,
+      ),
+    });
   }
 
   // The one number the lock screen needs: when the alarm actually goes off.
@@ -90,7 +87,7 @@ export default function AppPage() {
           now={now}
           wakeTimes={wakeTimes}
           paused={paused}
-          onPausedChange={setPaused}
+          onPausedChange={(value) => update({ paused: value })}
         />
 
         <WakeTimePicker
@@ -116,9 +113,9 @@ export default function AppPage() {
 
         <Atmosphere
           soundscapeId={soundscapeId}
-          onSelect={setSoundscapeId}
+          onSelect={(value) => update({ soundscapeId: value })}
           level={level}
-          onLevelChange={setLevel}
+          onLevelChange={(value) => update({ level: value })}
         />
 
         <View className="flex-row items-center justify-between border-t border-line-soft pt-5">

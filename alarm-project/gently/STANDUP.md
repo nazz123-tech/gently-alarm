@@ -1184,3 +1184,107 @@ information belongs on a control instead.
 
 **Checks**
 - `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+
+## Step 17: Xcode arrived; the dev build is blocked on CocoaPods (2026-09-20)
+
+**Xcode 27 is installed**, with iOS 27 simulators. That clears the blocker
+recorded in step 1 — "Xcode will be required from step 9".
+
+**The app was seen running for the first time.** Launched on an iPhone 17
+simulator through Expo Go. The top of the app page renders as designed: the
+badge and header, the 24h chip and armed dot, `SUN · SEP 20, 2026 / LOCAL`, the
+big clock, the accent rule with "A GENTLE START", and next awakening showing
+`07:42 · MON · IN 20H 44M`. Between two captures a minute apart the clock ticked
+and the countdown decremented, so the self-clocking `NowBlock` and the
+thirty-second page tick both work on device.
+
+**Three environment findings, in the order they bit:**
+
+1. **There is no Simulator GUI on this machine.** `Simulator.app` is absent from
+   `/Applications`, from inside `Xcode.app`, and from Spotlight. `simctl` can
+   boot, deep-link and screenshot headlessly, but nothing can *tap*. Expo Go's
+   first-run dev-menu explainer therefore cannot be dismissed, and it covers the
+   lower two thirds of the screen.
+2. **Memory is in a bad state**: 8 GB total, 0.1 GB free, 2.9 GB compressed and
+   **8.3 GB of 9.2 GB swap used**, with no single process above 0.26 GB. It is
+   accumulated compressed and swapped-out state, much of it Xcode services and
+   the simulator runtime.
+3. **`npx expo run:ios` fails on CocoaPods, not on memory.** Prebuild succeeded
+   and `ios/` was generated; the build then stopped at "The sandbox is not in
+   sync with the Podfile.lock".
+   - `gem install cocoapods` fails: system Ruby installs to `/Library/Ruby`,
+     which needs sudo.
+   - Homebrew is not installed at all (`spawn brew ENOENT`).
+   - `gem install --user-install cocoapods` also fails, and this is the real
+     wall: the `nkf` native extension needs Ruby 2.6 headers inside the macOS 27
+     SDK, and **Xcode 27 no longer ships them** — Apple has deprecated the
+     bundled Ruby. System Ruby cannot build native gems against this SDK.
+
+**So CocoaPods needs a Ruby that is not the system one, and every route to that
+needs a privileged install.** The build left `package.json` pointing at
+`expo run:ios`; reverted, since that workflow does not currently work. `ios/`
+is kept — it is gitignored, 164K, and saves regenerating on the next attempt.
+
+**Unblocking it needs one command run by hand** (Homebrew's installer asks for a
+password, which is why it cannot be automated from here):
+
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    brew install cocoapods
+    npx expo run:ios
+
+**Nothing in the app is blocked by this.** Expo Go on a real phone still works
+and is the better test surface anyway — real speakers, real haptics, a real
+mute switch. What is blocked is AlarmKit, which needs native code and therefore
+a dev build.
+
+## Step 18: Settings are remembered (2026-09-20)
+
+Everything set on the app page lived in `useState`, so every reload threw it
+away and went back to 07:42 every day, Soft Rain, 11 dB. Per-weekday alarms are
+not much use if they have to be entered again each launch.
+
+**Done**
+- `@react-native-async-storage/async-storage` (2.2.0). Bundled in Expo Go, so it
+  works with the workflow we are staying on — no dev build needed.
+- `src/lib/settings.ts` — one hook, `useAlarmSettings()`, returning the settings
+  and a single `update()` for changing any part of them.
+- `src/app/index.tsx` reads from it. The wake times, pause switch, soundscape
+  and level are all stored; the day you are *looking at* is not, because that is
+  where you are in the app rather than a setting.
+
+**Three things in there worth knowing**
+
+1. **Writes are debounced by 400ms.** Rolling the dial changes the time up to
+   sixty times a second; writing each one would hammer storage to save values
+   that were true for a sixtieth of a second. Each change cancels the pending
+   write, so only the time the dial settles on is stored.
+2. **Nothing is written until the first read finishes.** Otherwise the defaults
+   would be saved over whatever was already on disk, in the moment between
+   mounting and loading.
+3. **What comes back from storage is not trusted.** It was written by an earlier
+   version of the app and may no longer fit. Every field is checked and falls
+   back to its default on its own:
+
+   | stored | becomes |
+   | --- | --- |
+   | `soundscapeId: 'summer-storm'` | `soft-rain` |
+   | `level: 5` | `0.28` |
+   | six wake times instead of seven | seven defaults |
+   | `level: '0.4'` (a string) | `0.28` |
+   | `null` / unparseable | all defaults |
+
+   The first row is not hypothetical. Summer Storm was deleted two steps ago,
+   so anyone who had it selected would otherwise load a soundscape with no bed
+   file behind it.
+
+The storage key carries a version (`gently.settings.v1`), so a future change of
+shape can start from fresh defaults instead of trying to read data that no
+longer fits.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
+- The fallback logic checked against six kinds of bad input, including the
+  deleted soundscape
+
+**Not verified**
+- That it survives a real reload on the phone. That needs you.
