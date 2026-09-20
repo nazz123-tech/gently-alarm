@@ -18,10 +18,10 @@ type WakeTimePickerProps = {
 /**
  * The rotary dial and the card around it.
  *
- * The day being edited is named twice — in the section heading and again above
- * the dial — because the dial sits a long way down a scrolling page, and a
- * time picker that does not say what it is setting is a good way to change the
- * wrong day's alarm.
+ * The day being edited is named in the section heading above. It used to be
+ * repeated in the card title as well, which produced "Roll to set SUN" — and
+ * in an app built on a sunrise, a line that reads as *sunset* is not one to
+ * keep. The heading is directly above the card and says it clearly enough.
  */
 export function WakeTimePicker({
   minutesOfDay,
@@ -43,7 +43,7 @@ export function WakeTimePicker({
       <View className="mb-6 rounded-3xl bg-surface-raised p-5">
         <View className="flex-row items-center justify-between">
           <Text style={textStyles.eyebrow} className="text-ink-secondary">
-            Roll to set {dayLabel}
+            Roll to choose wake time
           </Text>
           <View
             className="rounded-full px-3 py-1"

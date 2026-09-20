@@ -1445,3 +1445,50 @@ a platform this targets yet.
 
 **This does not affect the build currently queued**, which was uploaded before
 the change. The next one will pick it up.
+
+## Step 20: The EAS simulator build, and the app seen whole (2026-09-20)
+
+**The build succeeded.** 20 MB uploaded, built in the cloud, 35 MB artifact
+down. That proves the whole pipeline for this project — prebuild in the cloud,
+the config plugins, the 12 MB of audio — before any native code is added to
+debug alongside it. `@nazarism/gently`, profile `simulator`, no Apple
+credentials and nothing paid.
+
+Installed with `simctl install` and launched headlessly. No Expo Go, so no
+first-run modal covering two thirds of the screen.
+
+**The app page renders correctly, and the dial is right.** First proper look at
+the rotary in colour at real size: the arc runs from midnight clockwise, the
+handle sits just past three o'clock, which is where 07:42 belongs on a 24-hour
+dial (about 115°). Header, date line, live clock, next awakening, the card and
+its footer all as designed.
+
+**Found by looking, which is the point of looking: "ROLL TO SET SUN".** The day
+label was appended to the card title in step 16, and the abbreviation for Sunday
+lands so that the line reads as *sunset* — in an app themed entirely on sunrise,
+with a sunrise gradient behind its lock screen. It is not wrong, it just reads
+wrong, and no amount of typechecking would ever have said so.
+
+**The lock screen could not be reached.** Deep linking with `gently://lock`
+raises an iOS "Open in Gently?" confirmation, both from inside the app and cold
+from the home screen. That needs a tap, and there is still no Simulator GUI on
+this machine. The app page is the initial route, which is the only reason it
+could be captured at all.
+
+Seeing the lock screen would mean temporarily making it the initial route and
+building again. Cheap in money, slow in time, and worth it only when there is
+something new to look at — a Live Activity, for instance.
+
+## Step 20a: "Roll to set SUN" reverted (2026-09-20)
+
+The card title is `Roll to choose wake time` again. The day was appended to it
+in step 16 so the dial would say what it was setting, but abbreviated it landed
+as "ROLL TO SET SUN" — which reads as *sunset*, in an app built on a sunrise.
+
+The heading directly above the card still carries the day, so nothing is lost:
+`SET AWAKENING · SUN` sits a line above `Roll to choose wake time`. The concern
+from step 16 — that a picker far down a scrolling page should say what it is
+setting — is still met, just once instead of twice.
+
+**Checks**
+- `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
