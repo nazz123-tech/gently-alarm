@@ -1409,3 +1409,39 @@ requires, and nothing requires the `.caf` yet — confirmed by MD5 against the
 export. The `.m4a` stays for in-app playback through `expo-audio`; the `.caf`
 sits ready for AlarmKit. One of them will become redundant once AlarmKit is
 wired, and that is the moment to pick.
+
+## Step 19b: No microphone permission (2026-09-20)
+
+Prebuild wrote four Android permissions into `app.json`, one of them
+`RECORD_AUDIO`. `expo-audio` declares it by default because the library
+supports recording; Gently only ever plays. An alarm app asking for the
+microphone looks like surveillance whatever the explanation, and App Review
+asks about permissions an app never exercises.
+
+**Two changes were needed, not one.** Setting the plugin option alone would not
+have fixed it — prebuild had already written the permission into `app.json` as
+explicit config, which would keep declaring it regardless of what the plugin
+did.
+
+- `expo-audio` now takes `microphonePermission: false` (iOS) and
+  `recordAudioAndroid: false` (Android), so it never adds them again.
+- `RECORD_AUDIO` removed from the `android.permissions` array that was already
+  there.
+
+**Kept:** `MODIFY_AUDIO_SETTINGS`, `FOREGROUND_SERVICE` and
+`FOREGROUND_SERVICE_MEDIA_PLAYBACK`. Those are what let a soundscape keep
+playing with the screen off, which is the point.
+
+**Verified** against `expo config --type prebuild`, which resolves the config
+after every plugin has run: no `RECORD_AUDIO`, and no microphone key in the iOS
+Info.plist. Checking the file alone would not have proved it, since the plugin
+could have put it back.
+
+**Also present, from Expo's own defaults:** `READ_EXTERNAL_STORAGE`,
+`WRITE_EXTERNAL_STORAGE` and `INTERNET`. Left alone — they come from the
+framework rather than from a choice here, and the storage pair is largely
+legacy on modern Android. Worth a look before shipping to Android, which is not
+a platform this targets yet.
+
+**This does not affect the build currently queued**, which was uploaded before
+the change. The next one will pick it up.
