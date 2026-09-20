@@ -1325,3 +1325,87 @@ question from step 14 — the chime plays at one fixed share of the bed's volume
 tuned against beds that sit 10 dB louder, so Fireplace was where a single
 number was most likely to be wrong. It is not, which means the layer gains hold
 across the whole range.
+
+## Step 19: AlarmKit research, before writing any of it (2026-09-20)
+
+Apple's own documentation is JavaScript-rendered and returns nothing usable to
+a fetch — the first attempt came back with invented details, including the
+wrong iOS version, so it was discarded. What follows comes from the
+documentation of working wrappers instead. Ten of them exist on npm; Expo ships
+nothing for this.
+
+### AlarmKit — verified
+
+- **iOS 26+ only.** Hard gate.
+- `NSAlarmKitUsageDescription` in Info.plist. Expressible in `app.json`, so no
+  manual Xcode step.
+- **Custom alarm sounds are supported, but must be `.wav`, `.aiff` or `.caf`.**
+  Ours is `step_wake_alarm.m4a`, so it needs converting. Cheap, and needed
+  whatever else is decided.
+- Customisable: tint colour, title (keep under ~15 characters, a Dynamic Island
+  constraint), and primary/secondary button text, colour and SF Symbol icon.
+  Enough for Gently's colours and wording, not its design.
+- **Native countdown and snooze**, in seconds. The 9/6/4-minute ladder maps
+  onto it directly rather than needing reimplementation.
+- **No widget extension is required by AlarmKit itself.** One wrapper asks for
+  an App Group, but that is its own choice for sharing data with an extension,
+  not a framework requirement — the two sets of docs disagree, which is worth
+  knowing before picking one.
+- **A physical device is required; simulator support is limited.**
+
+### Live Activities — not verified
+
+What a Live Activity may actually render — gradients, custom shapes, anything
+resembling the dot clock, and whether it can be interactive — could not be
+established. Apple's pages do not render, and the two relevant npm packages are
+either thin on detail or unreachable. All that is confirmed is that a Live
+Activity means hand-written SwiftUI in a widget extension, added through an
+Expo config plugin.
+
+Answering this properly means building a minimal one and looking at it, which
+needs the build chain below.
+
+### The gate nobody costed
+
+AlarmKit needs a physical device. Building locally is blocked (CocoaPods cannot
+be installed: no Homebrew, and Xcode 27 no longer ships the Ruby headers system
+Ruby needs). That leaves EAS Build, and a build that installs on a real iPhone
+has to be signed — which through EAS means an **Apple Developer Program
+membership, around $99 a year**. A free Apple ID only permits local Xcode
+sideloading, and local building is exactly what is blocked.
+
+Worth confirming before spending anything. A free EAS *simulator* build
+sidesteps signing, but AlarmKit is documented as limited on the simulator, so
+it may not answer the question either.
+
+### What this changes
+
+AlarmKit covers more than expected — the alarm, a custom sound, and the snooze
+ladder. It still does not cover the thirty-minute fade, which remains the open
+design question. But the blocker is no longer knowledge; it is that testing any
+of it has a cost attached.
+
+## Step 19a: The alarm sound in CAF, ready for AlarmKit (2026-09-20)
+
+AlarmKit will only take `.wav`, `.aiff` or `.caf`, and ours was `.m4a`.
+
+**Built from the original MP3, not from the M4A** — converting the existing
+asset would have been a second lossy generation for no reason. Same processing
+as before: cut to 11 whole beep cycles so it can ring continuously, ends faded
+to silence.
+
+- `assets/sounds/step_wake_alarm.caf`, 4.66s, 16-bit PCM, 878 KB.
+- **Level identical to the M4A** (RMS -15.5, peak -3.0 dBFS), so nothing about
+  how it sounds changes.
+- **Kept stereo.** The two channels measured 0.966 correlation — close, but not
+  the same sound twice, so collapsing to mono to halve the size would have
+  thrown away real width.
+- **The loop wrap is now exactly zero** rather than -44 dB below the signal.
+  PCM has no encoder to reintroduce error at the edges, which the AAC version
+  did. For a sound that repeats until someone stops it, that is worth having.
+
+**It costs nothing until it is used.** Metro only bundles assets something
+requires, and nothing requires the `.caf` yet — confirmed by MD5 against the
+export. The `.m4a` stays for in-app playback through `expo-audio`; the `.caf`
+sits ready for AlarmKit. One of them will become redundant once AlarmKit is
+wired, and that is the moment to pick.
