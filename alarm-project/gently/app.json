@@ -9,7 +9,7 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0A0605",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.gently.alarm",
       "infoPlist": {
         "UIBackgroundModes": [
