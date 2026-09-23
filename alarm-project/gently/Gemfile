@@ -1,0 +1,17 @@
+source 'https://rubygems.org'
+
+# CocoaPods, pinned to a line that still runs on the Ruby 2.6 macOS ships.
+#
+# This has to be bundler rather than `gem install`: `gem install` takes the
+# newest of every transitive dependency, and securerandom, zeitwerk and ffi
+# have all moved to Ruby 3, so it fails whatever you pin at the top. Bundler
+# resolves against the running Ruby and picks versions that fit.
+#
+# Native gems need `scripts/ruby26-compat.rb` on RUBYOPT to compile.
+# See `npm run pod` for the whole invocation.
+gem 'cocoapods', '~> 1.15.2'
+
+# concurrent-ruby 1.3.5 stopped requiring 'logger', which activesupport 6.1
+# relied on — without this, every `pod` command dies on an uninitialized
+# constant before it does any work.
+gem 'concurrent-ruby', '< 1.3.5'

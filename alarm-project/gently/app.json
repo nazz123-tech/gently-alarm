@@ -53,7 +53,8 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withSigningTeam"
     ],
     "experiments": {
       "typedRoutes": true,

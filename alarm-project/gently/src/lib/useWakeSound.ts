@@ -1,5 +1,5 @@
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { CHIME_STEP, WARM_TONE_STEP, progressOfStep } from '@/lib/cycle';
 import { levelAt } from '@/lib/ramp';
@@ -110,6 +110,9 @@ export function useWakeSound({
   /** How many warm tones have sounded so far in this window. */
   const warmTonesPlayed = useRef(0);
 
+  /** Temporary, while working out why audio stops when the screen locks. */
+  const [audioMode, setAudioMode] = useState('setting…');
+
   // Both loop: the soundscape runs for the length of the window, and the alarm
   // rings until it is stopped.
   useEffect(() => {
@@ -124,7 +127,18 @@ export function useWakeSound({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: 'doNotMix',
-    }).catch(() => {});
+    })
+      .then(() => {
+        setAudioMode('ok');
+        console.log('[gently] audio mode set: background + silent mode');
+      })
+      // Not swallowed. If this fails the session keeps a category that stops
+      // the moment the screen locks, which is the difference between an alarm
+      // and a disappointment.
+      .catch((error) => {
+        setAudioMode(`FAILED ${String(error).slice(0, 40)}`);
+        console.warn('[gently] audio mode FAILED', error);
+      });
   }, [bed, chime, alarm]);
 
   // Swapping the soundscape swaps the file under the same player.
@@ -151,7 +165,10 @@ export function useWakeSound({
       if (holdSession) {
         // Playing, but silent: enough to keep iOS from suspending us.
         bed.volume = 0;
-        if (!bed.playing) bed.play();
+        if (!bed.playing) {
+          console.log('[gently] holding the session: bed playing silently');
+          bed.play();
+        }
       } else {
         bed.pause();
       }
@@ -163,7 +180,10 @@ export function useWakeSound({
     // loudest is still exactly the level chosen on the app page.
     const bedVolume = (QUIETEST + (1 - QUIETEST) * levelAt(progress)) * maxVolume;
     bed.volume = bedVolume;
-    if (!bed.playing) bed.play();
+    if (!bed.playing) {
+      console.log(`[gently] bed starting, progress ${progress.toFixed(2)}`);
+      bed.play();
+    }
 
     // Step 3: the chime fades in over the bed and stays for the rest.
     const chimeIn = Math.min(1, Math.max(0, (progress - CHIME_AT) / CHIME_FADE));
@@ -213,4 +233,6 @@ export function useWakeSound({
       alarm.pause();
     }
   }, [alarm, ringing]);
+
+  return audioMode;
 }

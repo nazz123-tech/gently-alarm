@@ -1531,3 +1531,84 @@ backstop.
 - `npx tsc --noEmit`: passes, `npx expo export --platform ios`: builds clean
 - `UIBackgroundModes` confirmed in the resolved prebuild config, not just in
   the file — a plugin could have overwritten it
+
+## Step 22: The locked-screen silence, and the build that can prove it (2026-09-23)
+
+Two nights of testing said the soundscape does not play with the phone locked.
+**The test could not have worked, and the code may well be fine.**
+
+It was run in Expo Go, which runs Expo's own native config, not this app's.
+`UIBackgroundModes` lives in the Info.plist, so the fix from step 21 has never
+once been inside a binary on the phone — and the EAS build from step 20 was a
+*simulator* build uploaded before that fix existed. There was no way to tell,
+because there has never been a build on a real device at all.
+
+Reading the SDK rather than guessing: `expo-audio` pauses every player on
+backgrounding only when `shouldPlayInBackground` is false
+(`AudioModule.swift:98`), and its config plugin already defaults
+`enableBackgroundPlayback: true`, which writes `UIBackgroundModes` by itself —
+the manual entry in `app.json` is redundant but harmless.
+
+### Step 17 was wrong, and it cost the project three days
+
+The blocker was recorded as "Xcode 27 no longer ships the Ruby headers system
+Ruby needs". The headers are there. What is actually wrong is one directory
+name: the SDK ships them under `universal-darwin26`, and the system Ruby 2.6.10
+reports its own arch as `universal-darwin25`, so mkmf writes a Makefile whose
+prerequisite `config.h` does not exist and every native gem dies with "No rule
+to make target".
+
+**CocoaPods now works on this machine.** No Homebrew, no sudo, no Apple
+Developer Program, nothing paid.
+
+- `scripts/ruby26-compat.rb` — redirects `rubyarchhdrdir` at the SDK's real
+  directory. Only that one key, so gems still install where Ruby looks.
+- It also backports `Enumerable#filter_map`, which arrived in Ruby 2.7.
+  `expo-modules-autolinking` uses it to read the precompiled-framework configs;
+  without it every read throws, Expo silently falls back to building all
+  modules from source, and the build takes an order of magnitude longer.
+- `Gemfile` pins CocoaPods to 1.15.2. This has to be bundler, not
+  `gem install` — `gem install` takes the newest of every transitive
+  dependency, and securerandom, zeitwerk and ffi have all moved to Ruby 3, so
+  it fails whatever you pin at the top. Bundler resolves against the running
+  Ruby. `concurrent-ruby` is held under 1.3.5, which stopped requiring
+  `logger` and breaks activesupport 6.1 on every command.
+- `scripts/pod.sh` and `npm run pod` carry the PATH and RUBYOPT, so none of
+  this has to be remembered.
+
+**Checks**
+- `pod install`: 106 dependencies, 105 pods, precompiled frameworks in use
+- `npx expo run:ios`: builds clean and installs on the simulator, exit 0
+- The compiled `Gently.app` Info.plist carries `UIBackgroundModes: [audio]`
+  and still no microphone key — verified in the binary, not the source
+
+### AlarmKit, read from the SDK instead of the web
+
+Step 19 had to work from wrappers because Apple's pages do not render. Xcode 27
+is installed now, so the framework's own interface is on disk and was read
+directly. Everything below is from
+`AlarmKit.framework/Modules/AlarmKit.swiftmodule/arm64e-apple-ios.swiftinterface`.
+
+- `AlarmManager.shared`, with `requestAuthorization()`, `authorizationState`,
+  `schedule(id:configuration:)`, `cancel`, `stop`, `pause`, `resume`, and an
+  `alarmUpdates` async sequence.
+- `Alarm.Schedule` is either `.fixed(Date)` or `.relative`, and relative takes
+  an hour, a minute and `.weekly([Locale.Weekday])`. **That is exactly the
+  shape of `settings.wakeTimes`** — a time per weekday maps straight onto it.
+- The custom sound is `sound:` on the configuration, an
+  `ActivityKit.AlertConfiguration.AlertSound`. The `.caf` from step 19a is what
+  it wants.
+- `AlarmPresentation.Alert(title:secondaryButton:secondaryButtonBehavior:)`,
+  and `secondaryButtonBehavior: .countdown` is the native snooze.
+  Note `stopButton` is deprecated as of iOS 26.1 — the new initialiser has no
+  stop button at all, so the old one should not be used.
+
+**The finding that changes the plan: `AlarmAttributes` conforms to
+`ActivityKit.ActivityAttributes`.** AlarmKit presents itself *through* a Live
+Activity. So the widget extension is not a second feature that comes after the
+alarm — it is how the alarm is displayed. "AlarmKit first, then the Live
+Activity" turns out to be one piece of work rather than two.
+
+**Next:** pair an iPhone to this Mac, sign with the free Apple ID, and install.
+That answers the overnight question for real, and it is the same build the
+widget extension needs.

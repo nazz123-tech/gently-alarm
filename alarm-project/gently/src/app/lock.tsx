@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -114,6 +114,29 @@ export default function LockScreen() {
     return () => clearInterval(clock);
   }, []);
 
+  /**
+   * Temporary, while working out why audio stops when the screen locks.
+   *
+   * A heartbeat every second, recording the longest gap between beats. While
+   * JavaScript is running the gap stays near one second; if iOS suspends the
+   * app the gap becomes however long the screen was off. That one number is
+   * the difference between "the audio session is wrong" and "the whole app
+   * was frozen", which need completely different fixes.
+   */
+  const [longestPause, setLongestPause] = useState(0);
+  const lastBeat = useRef(Date.now());
+
+  useEffect(() => {
+    const beat = setInterval(() => {
+      const at = Date.now();
+      const gap = (at - lastBeat.current) / 1000;
+      lastBeat.current = at;
+      setLongestPause((longest) => Math.max(longest, gap));
+    }, 1000);
+
+    return () => clearInterval(beat);
+  }, []);
+
   const state = resolveState();
 
   function resolveState(): AlarmState {
@@ -166,7 +189,7 @@ export default function LockScreen() {
   });
 
   // The soundscape fades up across the window; the alarm rings under it.
-  useWakeSound({
+  const audioMode = useWakeSound({
     soundscapeId: soundscape.id,
     maxVolume,
     // Ringing is the last step of the same progression, not a different
@@ -230,6 +253,13 @@ export default function LockScreen() {
             </Text>
           )}
         </View>
+
+        {/* Temporary diagnostic. Unlock and read it: a longest pause of about
+            a second means JavaScript kept running; anything near how long the
+            screen was off means iOS suspended the app. */}
+        <Text style={textStyles.capLabel} className="pb-2 text-center text-onSky-text/40">
+          audio {audioMode} · longest pause {longestPause.toFixed(1)}s
+        </Text>
 
         {screen.showTray && <SlideToStop onStop={stop} />}
       </SafeAreaView>
