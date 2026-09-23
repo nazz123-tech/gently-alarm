@@ -19,8 +19,7 @@ import { colors, textStyles } from '@/theme';
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 /**
- * The app page — everything you set, on one screen, built from
- * `context/app-looklike.png`.
+ * The app page — everything you set, on one screen.
  *
  * The lock screen is deliberately bare, so this is where the wake times, the
  * cycle, the week and the soundscape all live. Because it is a single page

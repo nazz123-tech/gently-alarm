@@ -1,5 +1,5 @@
 /**
- * Typography tokens, taken from `context/lock-screen-prototype.html`.
+ * Typography tokens, taken from the lock screen prototype.
  *
  * Two families: Archivo for anything you read as a sentence, DM Mono for
  * labels, times and anything that should feel like a readout.

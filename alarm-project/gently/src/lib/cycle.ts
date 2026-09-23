@@ -2,8 +2,7 @@ import type { Soundscape } from '@/lib/soundscapes';
 import { formatDialTime } from '@/lib/time';
 
 /**
- * The awakening cycle: five sounds rising across the wake window, from
- * `context/app-looklike.png`.
+ * The awakening cycle: five sounds rising across the wake window.
  *
  * Two things are worked out rather than stored:
  *

@@ -1,5 +1,5 @@
 /**
- * Animation durations, in milliseconds, from `context/lock-screen-prototype.html`.
+ * Animation durations, in milliseconds, from the lock screen prototype.
  *
  * Kept here rather than inline so the whole app moves at the same speeds — a
  * "gentle" alarm should never feel snappy.

@@ -32,9 +32,6 @@ Open questions:
   silently while the alarm is armed to keep iOS from suspending the app. This
   has not been proven on a phone through a whole night yet. The lock screen
   shows a temporary `audio … · longest pause …` line to diagnose it.
-- **iOS 27 will not launch the app.** iOS 27 kills apps that have not adopted
-  UIKit's scene lifecycle, which is how the iOS 27 simulator behaves today.
-  iPhones on iOS 26 are unaffected. This needs fixing before iOS 27 ships.
 - **AlarmKit was tried and removed** (2026-09-24). Alarms scheduled but never
   rang, and it added a native module and a widget extension. The in-app alarm
   is the only one for now.
@@ -100,6 +97,10 @@ own JavaScript, so it runs without Metro.
 - **Free Apple ID:** the app stops opening after 7 days and has to be
   reinstalled. On the phone, trust the developer first under Settings →
   General → VPN & Device Management.
+- **iOS 27:** the app adopts UIKit's scene lifecycle through
+  `expo-build-properties` (`ios.enableSceneSupport`), without which iOS 27
+  kills it at launch. The flag can go when upgrading to SDK 58, whose template
+  adopts scenes itself.
 - **Keychain popups:** if `codesign` keeps asking for the keychain password,
   click **Always Allow**.
 

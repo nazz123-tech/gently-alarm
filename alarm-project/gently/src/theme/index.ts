@@ -1,5 +1,5 @@
 /**
- * Design tokens for Gently, derived from `context/lock-screen-prototype.html`.
+ * Design tokens for Gently, derived from the lock screen prototype.
  *
  * Import from here rather than the individual files:
  *

@@ -1,6 +1,5 @@
 /**
- * The maths behind the rotary time picker, from
- * `context/Gradual-Awakening-Rotary-Awakening-Setup-2.png`.
+ * The maths behind the rotary time picker.
  *
  * It is a 24-hour dial: one full turn is a whole day, `00:00` sits at the top,
  * and it runs clockwise. Times snap to 5 minutes, which is why the reference

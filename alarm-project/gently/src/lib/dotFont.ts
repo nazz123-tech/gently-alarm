@@ -1,5 +1,5 @@
 /**
- * The 5x7 dot font for the clock, copied from `context/lock-screen-prototype.html`.
+ * The 5x7 dot font for the clock, copied from the lock screen prototype.
  *
  * Each glyph is 7 strings, one per row, read top to bottom. A "1" is a lit dot
  * and a "0" is an unlit one — the unlit dots still get drawn, very faintly,

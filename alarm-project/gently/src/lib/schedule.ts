@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 
 /**
- * Dates and durations for the app page, using dayjs (per `AGENT_INFO.md`).
+ * Dates and durations for the app page, using dayjs.
  */
 
 const pad = (value: number) => String(value).padStart(2, '0');

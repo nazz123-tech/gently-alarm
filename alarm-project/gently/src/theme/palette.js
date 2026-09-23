@@ -1,5 +1,5 @@
 /**
- * The raw palette, taken from `context/lock-screen-prototype.html`.
+ * The raw palette, taken from the lock screen prototype.
  *
  * This one file is the single source of truth for colour. It is plain
  * JavaScript (not TypeScript) for one reason: `tailwind.config.js` runs in

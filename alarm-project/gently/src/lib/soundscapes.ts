@@ -1,9 +1,6 @@
 /**
- * The soundscapes you can wake up to, taken from the shortlist in
- * `context/SOUND_RESEARCH.md` — one name and a short poetic subtitle each.
- *
- * The audio files themselves are not here yet; `context/sounds/` is where they
- * will land. Until then this is the menu and nothing plays.
+ * The soundscapes you can wake up to — one name and a short poetic subtitle
+ * each. The audio for each is mapped by id in `useWakeSound.ts`.
  */
 
 export type Soundscape = {
