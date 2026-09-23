@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BreathingDot } from '@/components/BreathingDot';
 import { DotClock } from '@/components/DotClock';
@@ -137,6 +137,8 @@ export default function LockScreen() {
     return () => clearInterval(beat);
   }, []);
 
+  const insets = useSafeAreaInsets();
+
   const state = resolveState();
 
   function resolveState(): AlarmState {
@@ -230,7 +232,14 @@ export default function LockScreen() {
     <View className="flex-1 bg-surface-screen">
       <SkyBackground state={screen.sky} />
 
-      <SafeAreaView edges={['top', 'bottom']} className="flex-1 px-4 pb-4">
+      {/* The bottom inset alone, not the inset plus padding: the tray belongs
+          just above the home indicator, where iOS puts its own lock screen
+          controls, not floating a thumb's width higher. Phones without a
+          home indicator have no inset, so they still get a small gap. */}
+      <SafeAreaView
+        edges={['top']}
+        className="flex-1 px-4"
+        style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
         <View className="flex-1 items-center justify-center" style={{ gap: 9, paddingBottom: 22 }}>
           <Text style={textStyles.capLabel} className="text-onSky-text/80">
             {screen.label}

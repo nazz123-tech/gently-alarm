@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/components/AppHeader';
 import { Atmosphere } from '@/components/Atmosphere';
@@ -13,7 +13,7 @@ import { WakeTimePicker } from '@/components/WakeTimePicker';
 import { WAKE_WINDOW_MINUTES } from '@/lib/alarm';
 import { nextAlarmAt } from '@/lib/schedule';
 import { useAlarmSettings } from '@/lib/settings';
-import { textStyles } from '@/theme';
+import { colors, textStyles } from '@/theme';
 
 /** The days of the week, indexed the way `Date.getDay()` does it. */
 const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -31,6 +31,7 @@ const WEEKDAY_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
  */
 export default function AppPage() {
   const [now, setNow] = useState(() => new Date());
+  const insets = useSafeAreaInsets();
 
   // Everything you set is remembered between launches. The day you happen to
   // be looking at is not — that is where you are in the app, not a setting.
@@ -77,8 +78,13 @@ export default function AppPage() {
   const selectedWakeMinutes = wakeTimes[selectedWeekday];
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-base">
-      <ScrollView contentContainerClassName="px-5 pb-12">
+    // No bottom edge: the page scrolls on behind the home indicator, and the
+    // inset is added to the end of the content instead, so the last thing on
+    // the page can still be scrolled clear of it.
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-surface-base">
+      <ScrollView
+        contentContainerClassName="px-5"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
         <AppHeader armed={!paused} />
 
         <NowBlock />
@@ -118,49 +124,26 @@ export default function AppPage() {
           onLevelChange={(value) => update({ level: value })}
         />
 
-        <View className="flex-row items-center justify-between border-t border-line-soft pt-5">
-          <Text style={textStyles.capLabel} className="text-ink-muted">
-            Light rises before sound
-          </Text>
-
-          {/* Temporary, until the lock screen is a real iOS one.
-              "Lock screen" opens it for the alarm that is actually set, running
-              off the clock. "Test fade" opens it inside the wake window and
-              runs the same fade over one minute instead of thirty, which is the
-              only way to hear the quiet opening without sitting through it. */}
-          <View className="flex-row gap-5">
-            {/* No `state` here on purpose. The lock screen works out what it
-                should be showing from the clock, and forcing one would pin it
-                to "armed" even when the wake window had already started. */}
-            {windowRunning ? (
-              <Text
-                style={textStyles.chipLabel}
-                accessibilityRole="button"
-                accessibilityState={{ disabled: true }}
-                className="text-ink-muted/40">
+        {/* Temporary, until the lock screen is a real iOS one.
+            "Lock screen" opens it for the alarm that is actually set, running
+            off the clock. "Test fade" opens it inside the wake window and runs
+            the same fade over one minute instead of thirty, which is the only
+            way to hear the quiet opening without sitting through it. */}
+        <View className="flex-row gap-3 pb-6">
+          {/* No `state` here on purpose. The lock screen works out what it
+              should be showing from the clock, and forcing one would pin it to
+              "armed" even when the wake window had already started. */}
+          {windowRunning ? (
+            <View
+              accessibilityRole="button"
+              accessibilityState={{ disabled: true }}
+              className="flex-1 items-center rounded-xl py-3.5"
+              style={{ borderWidth: 1, borderColor: colors.line.soft }}>
+              <Text style={textStyles.chipLabel} className="text-ink-muted/40">
                 Lock screen
               </Text>
-            ) : (
-              <Link
-                href={{
-                  pathname: '/lock',
-                  params: {
-                    soundscape: soundscapeId,
-                    level: String(level),
-                    alarmAt: String(nextAlarm.getTime()),
-                  },
-                }}
-                asChild>
-                <Pressable accessibilityRole="button" hitSlop={8}>
-                  <Text style={textStyles.chipLabel} className="text-ink-secondary">
-                    Lock screen
-                  </Text>
-                </Pressable>
-              </Link>
-            )}
-
-            {/* This one does force it, because the whole point is to skip the
-                waiting and run the fade over a minute. */}
+            </View>
+          ) : (
             <Link
               href={{
                 pathname: '/lock',
@@ -168,17 +151,48 @@ export default function AppPage() {
                   soundscape: soundscapeId,
                   level: String(level),
                   alarmAt: String(nextAlarm.getTime()),
-                  state: 'window',
                 },
               }}
               asChild>
-              <Pressable accessibilityRole="button" hitSlop={8}>
+              <Pressable
+                accessibilityRole="button"
+                className="flex-1 items-center rounded-xl py-3.5"
+                style={{ borderWidth: 1, borderColor: colors.line.strong }}>
                 <Text style={textStyles.chipLabel} className="text-ink-secondary">
-                  Test fade · 1 min
+                  Lock screen
                 </Text>
               </Pressable>
             </Link>
-          </View>
+          )}
+
+          {/* This one does force it, because the whole point is to skip the
+              waiting and run the fade over a minute. */}
+          <Link
+            href={{
+              pathname: '/lock',
+              params: {
+                soundscape: soundscapeId,
+                level: String(level),
+                alarmAt: String(nextAlarm.getTime()),
+                state: 'window',
+              },
+            }}
+            asChild>
+            <Pressable
+              accessibilityRole="button"
+              className="flex-1 items-center rounded-xl py-3.5"
+              style={{ borderWidth: 1, borderColor: colors.line.strong }}>
+              <Text style={textStyles.chipLabel} className="text-ink-secondary">
+                Test fade · 1 min
+              </Text>
+            </Pressable>
+          </Link>
+        </View>
+
+        <View className="items-center border-t border-line-soft pt-5">
+          <Text style={textStyles.capLabel} className="text-ink-muted">
+            Light rises before sound
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
