@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BreathingDot } from '@/components/BreathingDot';
@@ -18,6 +18,7 @@ import {
   type AlarmState,
 } from '@/lib/alarm';
 import { CYCLE_LENGTH, stepOfProgress } from '@/lib/cycle';
+import { columnsFor } from '@/lib/dotFont';
 import { levelAt } from '@/lib/ramp';
 import { nextAlarmAt, timeOfDay } from '@/lib/schedule';
 import { useAlarmSettings } from '@/lib/settings';
@@ -27,8 +28,17 @@ import { useNightScreen } from '@/lib/useNightScreen';
 import { useWakeSound } from '@/lib/useWakeSound';
 import { textStyles } from '@/theme';
 
-/** The prototype's two clock widths. */
-const CLOCK_WIDTH = { full: '86%', small: '52%' } as const;
+/**
+ * The clock is sized by its dots, not by its width, so the digits are the same
+ * size in every state. Sized by width, `7:12` and `07:42` came out at two
+ * different sizes, and the clock visibly grew and shrank as the alarm went
+ * from armed to ringing to stopped.
+ *
+ * The widest thing it ever shows is a five-character time, which fills this
+ * much of the screen; everything shorter just takes up less of it.
+ */
+const CLOCK_SHARE_OF_WIDTH = 0.86;
+const WIDEST_CLOCK_COLUMNS = columnsFor('00:00');
 
 /**
  * How long the finished screen stays up after the alarm is stopped, before the
@@ -134,6 +144,8 @@ export default function LockScreen() {
   }, []);
 
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const clockCell = (screenWidth * CLOCK_SHARE_OF_WIDTH) / WIDEST_CLOCK_COLUMNS;
 
   const state = resolveState();
 
@@ -269,7 +281,7 @@ export default function LockScreen() {
             {screen.label}
           </Text>
 
-          <DotClock value={screen.clock} style={{ width: CLOCK_WIDTH[screen.clockSize] }} />
+          <DotClock value={screen.clock} style={{ width: columnsFor(screen.clock) * clockCell }} />
 
           <SubLine parts={screen.sub} />
 

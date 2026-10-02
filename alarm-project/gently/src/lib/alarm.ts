@@ -45,8 +45,6 @@ export type ScreenContent = {
   label: string;
   /** What the dot clock shows. */
   clock: string;
-  /** The prototype's two clock widths. */
-  clockSize: 'full' | 'small';
   /** Parts of the line under the clock, joined with a dot. */
   sub: string[];
   sky: SkyState;
@@ -100,10 +98,6 @@ export function describeScreen({
       return {
         label: 'Getting up in',
         clock: formatCountdown(secondsLeft),
-        // Whole minutes only, so the screen can sleep between them. Four
-        // characters at the small width are the same size as the seven of
-        // `h:mm:ss` at the full one.
-        clockSize: 'small',
         sub: [soundscapeName, windowLabel],
         sky: 'night',
         showTray: true,
@@ -113,7 +107,6 @@ export function describeScreen({
       return {
         label: 'Waking you gently',
         clock: alarmLabel,
-        clockSize: 'small',
         sub: [soundscapeName, `step ${windowStep} of ${windowStepCount}`, `${windowLevelPercent}%`],
         sky: 'dawn',
         showTray: true,
@@ -123,7 +116,6 @@ export function describeScreen({
       return {
         label: 'Good morning',
         clock: alarmLabel,
-        clockSize: 'full',
         sub: [soundscapeName, `${minutesIntoWindow} min into your window`],
         sky: 'dawn',
         showTray: true,
@@ -133,7 +125,6 @@ export function describeScreen({
       return {
         label: 'Back in',
         clock: formatSnooze(snoozeLeft),
-        clockSize: 'small',
         sub: [`Snooze ${snoozesUsed} of ${MAX_SNOOZES}`, 'each one shorter'],
         sky: 'dawn',
         showTray: true,
@@ -143,7 +134,6 @@ export function describeScreen({
       return {
         label: 'Up at',
         clock: alarmLabel,
-        clockSize: 'full',
         sub: [soundscapeName, `${minutesIntoWindow} min into your window`],
         sky: 'day',
         // Nothing left to stop, so the tray goes away entirely.

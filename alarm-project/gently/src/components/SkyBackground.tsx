@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -17,8 +17,11 @@ type SkyBackgroundProps = {
  * cross-fade by changing opacity — the same trick the prototype uses. Night
  * sits at the bottom and never fades, so there is always something behind the
  * one fading in and the screen can never flash empty mid-transition.
+ *
+ * Memoised: the screens it sits behind re-render often — the edit screen on
+ * every step of the wheel — and the sky only changes when its state does.
  */
-export function SkyBackground({ state }: SkyBackgroundProps) {
+export const SkyBackground = memo(function SkyBackground({ state }: SkyBackgroundProps) {
   return (
     <>
       <LinearGradient {...gradients.sky.night} style={StyleSheet.absoluteFill} />
@@ -27,7 +30,7 @@ export function SkyBackground({ state }: SkyBackgroundProps) {
       <Grain />
     </>
   );
-}
+});
 
 type FadingSkyProps = {
   state: SkyState;
