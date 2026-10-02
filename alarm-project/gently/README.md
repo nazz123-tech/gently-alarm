@@ -13,10 +13,14 @@ slowly: five sounds, each louder than the last, ending in the alarm itself.
 | 5 | Wake alarm | 100% |
 
 - **One wake time per weekday.** Set Monday once and every Monday is set.
+  Tap a day to set it on an hour/minute wheel.
+- **Pause the next alarm** without touching the rest of the week.
 - **Five soundscapes:** Soft Rain, Ocean, Forest, Dawn Chorus, Fireplace.
 - **Snoozes get shorter:** 9, then 6, then 4 minutes, so snoozing ends.
 - **A dot-matrix lock screen** whose sky moves from night to dawn to day as
-  the window runs.
+  the window runs. The app page sits on the same sky.
+- **Leave it open overnight.** The lock screen keeps the phone awake and
+  turns the screen down until the window opens.
 
 Built with Expo SDK 57, React Native 0.86, Expo Router, NativeWind and
 `expo-audio`. iOS is the target; Android is untested.

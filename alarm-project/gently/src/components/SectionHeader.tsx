@@ -10,14 +10,13 @@ type SectionHeaderProps = {
 };
 
 /**
- * The small caps heading that starts each block of the app page, with the
- * hairline above it. Every section on the page uses this, which is what keeps
- * the rhythm even all the way down.
+ * The small caps heading at the top of each card on the app page. Every
+ * section uses this, which is what keeps the rhythm even all the way down.
  */
 export function SectionHeader({ label, right }: SectionHeaderProps) {
   return (
-    <View className="flex-row items-center justify-between border-t border-line-soft pb-3 pt-5">
-      <Text style={textStyles.eyebrow} className="text-ink-muted">
+    <View className="flex-row items-center justify-between pb-3 pt-4">
+      <Text style={textStyles.eyebrow} className="text-onSky-text/60">
         {label}
       </Text>
       {right}

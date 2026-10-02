@@ -53,14 +53,14 @@ export function LevelMeter({ value, onChange, accessibilityLabel }: LevelMeterPr
         style={{
           height: HEIGHT,
           borderRadius: HEIGHT / 2,
-          backgroundColor: colors.line.strong,
+          backgroundColor: colors.onSky.track,
           overflow: 'hidden',
         }}>
         <View
           style={{
             width: `${value * 100}%`,
             height: '100%',
-            backgroundColor: colors.ink.primary,
+            backgroundColor: colors.onSky.text,
           }}
         />
       </View>

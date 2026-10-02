@@ -23,6 +23,7 @@ import { nextAlarmAt, timeOfDay } from '@/lib/schedule';
 import { useAlarmSettings } from '@/lib/settings';
 import { findSoundscape } from '@/lib/soundscapes';
 import { formatDialTime } from '@/lib/time';
+import { useNightScreen } from '@/lib/useNightScreen';
 import { useWakeSound } from '@/lib/useWakeSound';
 import { textStyles } from '@/theme';
 
@@ -89,8 +90,8 @@ export default function LockScreen() {
     () =>
       params.alarmAt
         ? Number(params.alarmAt)
-        : nextAlarmAt(new Date(), settings.wakeTimes).getTime(),
-    [params.alarmAt, settings.wakeTimes],
+        : nextAlarmAt(new Date(), settings.wakeTimes, settings.skippedDay).getTime(),
+    [params.alarmAt, settings.wakeTimes, settings.skippedDay],
   );
   const windowStart = alarmAt - WAKE_WINDOW_MINUTES * MINUTE;
 
@@ -108,11 +109,6 @@ export default function LockScreen() {
     params.state as AlarmState | undefined,
   );
   const [previewProgress, setPreviewProgress] = useState(0);
-
-  useEffect(() => {
-    const clock = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(clock);
-  }, []);
 
   /**
    * Temporary, while working out why audio stops when the screen locks.
@@ -140,6 +136,31 @@ export default function LockScreen() {
   const insets = useSafeAreaInsets();
 
   const state = resolveState();
+
+  // Left open all night on the nightstand: no auto-lock, and the screen turned
+  // right down until the window opens.
+  const appActive = useNightScreen(state === 'armed' && !preview);
+
+  /**
+   * How often the screen re-reads the clock.
+   *
+   * While armed the countdown shows whole minutes, so it only has to wake on
+   * the minute of the countdown — once a minute for hours, rather than twice a
+   * second. The window opens on one of those minutes too, since it starts a
+   * whole number of minutes before the alarm. Everything after that moves by
+   * the second, and the fade needs the finer steps.
+   */
+  useEffect(() => {
+    if (state !== 'armed') {
+      const clock = setInterval(() => setNow(Date.now()), 500);
+      return () => clearInterval(clock);
+    }
+
+    // Just past the boundary, so the minute shown has already turned over.
+    const untilNextMinute = (alarmAt - Date.now()) % MINUTE || MINUTE;
+    const tick = setTimeout(() => setNow(Date.now()), untilNextMinute + 20);
+    return () => clearTimeout(tick);
+  }, [state, now, alarmAt]);
 
   function resolveState(): AlarmState {
     if (preview) return preview;
@@ -200,8 +221,11 @@ export default function LockScreen() {
     // steps of not startling anybody.
     progress: state === 'window' ? windowProgress : state === 'ringing' ? 1 : null,
     ringing: state === 'ringing',
-    // Waiting for the window is exactly when iOS would otherwise suspend us.
-    holdSession: state === 'armed',
+    // Waiting for the window is exactly when iOS would otherwise suspend us —
+    // but only once the screen is locked. Left open, the app is in the
+    // foreground and is not suspended, so there is no need to decode silence
+    // all night.
+    holdSession: state === 'armed' && !appActive,
   });
 
   // Once it is stopped, hold the finished screen for a moment and then open

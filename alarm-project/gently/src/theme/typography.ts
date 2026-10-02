@@ -22,17 +22,6 @@ export const fontFamily = {
 } as const;
 
 export const textStyles = {
-  /**
-   * The big clock at the top of the app page — `app-looklike.png`.
-   * Tight tracking and a line height equal to the size, so it sits close to
-   * the rule underneath it.
-   */
-  display: {
-    fontFamily: fontFamily.sansBold,
-    fontSize: 64,
-    lineHeight: 64,
-    letterSpacing: -2,
-  },
   /** Page title — prototype `h1`. */
   title: {
     fontFamily: fontFamily.sansBold,
@@ -102,6 +91,18 @@ export const textStyles = {
     fontSize: 10,
     letterSpacing: 0.6,
     lineHeight: 17,
+  },
+  /** The numbers round the edge of the time wheel. */
+  wheel: {
+    fontFamily: fontFamily.mono,
+    fontSize: 13,
+    letterSpacing: 0.5,
+  },
+  /** The one at the top of the wheel — the value chosen. */
+  wheelSelected: {
+    fontFamily: fontFamily.monoMedium,
+    fontSize: 20,
+    letterSpacing: 0.5,
   },
   /** Pill buttons in a row of choices — `.seg button`. */
   chipLabel: {

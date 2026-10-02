@@ -1612,3 +1612,51 @@ Activity" turns out to be one piece of work rather than two.
 **Next:** pair an iPhone to this Mac, sign with the free Apple ID, and install.
 That answers the overnight question for real, and it is the same build the
 widget extension needs.
+
+## Step 23: The Notion fix list (2026-10-02)
+
+Worked through the sub-tasks on the "Gently-alarm project" card in Notion.
+
+**Pause is for the next alarm, not the whole week.** `paused: boolean` became
+`skippedDay`, the date of the one alarm being skipped. `nextAlarmAt` passes
+over that date, the wake schedule marks it "Paused", and once the date has
+gone by it simply stops matching anything — nothing ever has to clear it.
+
+**The big clock on the app page is gone** (`NowBlock`).
+
+**Setting a time moved to its own screen** (`src/app/edit.tsx`), from a
+reference the user found: the time in the dot font, hours and minutes apart,
+and a large wheel of numbers seen edge-on underneath. Tap HOUR or MINUTE to
+choose what the wheel sets. 24-hour, 1-minute steps. Opened by tapping a day in
+the wake schedule; nothing is saved until Save. The rotary dial, its maths
+(`dial.ts`) and `WakeTimePicker` are deleted.
+
+- Each wheel goes exactly once round, so hours are 15° apart and minutes 6°.
+  At 12° the hours only covered 288°, and 23 could never roll on to 00.
+- Settings became one shared store (`useSyncExternalStore`). With a copy per
+  screen, Save on the edit screen would not reach the page underneath until
+  the next launch.
+
+**The app page now looks like the lock screen**: the night sky and grain
+fixed behind it, white on the sky, the next alarm in the dot font. Each
+section sits on dark glass (`onSky.card`), because the page scrolls past the
+bright horizon band and white text there disappears.
+
+**Left open overnight, it uses much less battery** (`useNightScreen`).
+
+- `expo-keep-awake` stops the phone auto-locking, so the app stays in the
+  foreground and is never suspended.
+- `expo-brightness` turns the screen to 3% while armed, and back when the
+  window opens — light still rises before sound. It is also put back whenever
+  the app stops being active, since it is the system brightness.
+- The countdown is `h:mm` now, so the screen wakes once a minute instead of
+  twice a second.
+- The silent soundscape only plays once the screen is actually locked. Left
+  open, there is nothing to keep alive. **Not yet proven on a phone:** that
+  starting it at the moment of locking is early enough.
+
+**Build note.** After `pod install` the build failed to link
+(`facebook::react::Sealable::Sealable()` undefined). Pods had unpacked the
+*release* React core but left no `React-Core-prebuilt/.last_build_configuration`,
+and React's swap script assumes "no file" means debug, so it never swapped.
+Writing `Release` into that file makes the next debug build swap it in.

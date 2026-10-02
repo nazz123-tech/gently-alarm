@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { Card } from '@/components/Card';
 import { LevelMeter } from '@/components/LevelMeter';
 import { SectionHeader } from '@/components/SectionHeader';
 import { MoonIcon } from '@/components/icons';
@@ -40,23 +41,20 @@ export const Atmosphere = memo(function Atmosphere({
   const advice = describeLevel(level);
 
   return (
-    <View>
-      <SectionHeader
-        label="Atmosphere"
-        right={<MoonIcon size={15} color={colors.ink.muted} />}
-      />
+    <Card>
+      <SectionHeader label="Atmosphere" right={<MoonIcon size={15} color={colors.onSky.text} />} />
 
       <View className="pb-2">
         <View className="flex-row items-baseline justify-between">
-          <Text style={textStyles.body} className="text-ink-primary">
+          <Text style={textStyles.body} className="text-onSky-text">
             {chosen.name}
           </Text>
-          <Text style={textStyles.sub} className="text-ink-primary">
+          <Text style={textStyles.sub} className="text-onSky-text">
             {decibels} dB
           </Text>
         </View>
 
-        <Text style={textStyles.capLabel} className="pb-3 text-ink-muted">
+        <Text style={textStyles.capLabel} className="pb-3 text-onSky-text/60">
           {chosen.subtitle}
         </Text>
 
@@ -68,7 +66,7 @@ export const Atmosphere = memo(function Atmosphere({
           <Text style={[textStyles.capLabel, { color: TONE_COLOUR[advice.tone] }]}>
             {advice.label}
           </Text>
-          <Text style={textStyles.hint} className="flex-1 text-ink-muted">
+          <Text style={textStyles.hint} className="flex-1 text-onSky-text/60">
             {advice.advice}
           </Text>
         </View>
@@ -89,19 +87,19 @@ export const Atmosphere = memo(function Atmosphere({
               accessibilityState={{ selected }}
               className="rounded-full px-4 py-2"
               style={{
-                backgroundColor: selected ? colors.accent.wash : 'transparent',
+                backgroundColor: selected ? colors.onSky.button : 'transparent',
                 borderWidth: 1,
-                borderColor: selected ? colors.accent.base : colors.line.strong,
+                borderColor: selected ? colors.onSky.trackFill : colors.onSky.line,
               }}>
               <Text
                 style={textStyles.chipLabel}
-                className={selected ? 'text-accent-base' : 'text-ink-secondary'}>
+                className={selected ? 'text-onSky-text' : 'text-onSky-text/60'}>
                 {sound.name}
               </Text>
             </Pressable>
           );
         })}
       </ScrollView>
-    </View>
+    </Card>
   );
 });

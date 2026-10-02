@@ -6,10 +6,14 @@ import dayjs from 'dayjs';
 
 const pad = (value: number) => String(value).padStart(2, '0');
 
-/** `THU · FEB 27, 2025` for the line above the big clock. */
-export function formatDateLine(now: Date): string {
-  const date = dayjs(now);
-  return `${date.format('ddd')} · ${date.format('MMM D, YYYY')}`.toUpperCase();
+/**
+ * `2026-10-03` — names a calendar day.
+ *
+ * There is one alarm per day, so this is also how a single alarm is named,
+ * which is what pausing the next one needs.
+ */
+export function dayKeyOf(date: Date): string {
+  return dayjs(date).format('YYYY-MM-DD');
 }
 
 /**
@@ -18,14 +22,24 @@ export function formatDateLine(now: Date): string {
  * Each weekday has its own time and the week repeats, so this walks forward
  * day by day and returns the first one that has not happened yet. Eight days
  * are checked rather than seven: the eighth is today's weekday coming round
- * again, which is always still ahead, so there is always an answer.
+ * again, which is always still ahead, so there is always an answer — even with
+ * one day skipped, since only one day ever is.
+ *
+ * `skippedDay` is a paused alarm, named by `dayKeyOf`. It is passed over as if
+ * that day had no alarm, and the one after it is returned instead.
  */
-export function nextAlarmAt(now: Date, timesByWeekday: number[]): Date {
+export function nextAlarmAt(
+  now: Date,
+  timesByWeekday: number[],
+  skippedDay: string | null = null,
+): Date {
   for (let offset = 0; offset <= 7; offset += 1) {
     const day = dayjs(now).add(offset, 'day');
     const alarm = day.startOf('day').add(timesByWeekday[day.day()], 'minute');
 
-    if (alarm.isAfter(dayjs(now))) return alarm.toDate();
+    if (alarm.isAfter(dayjs(now)) && alarm.format('YYYY-MM-DD') !== skippedDay) {
+      return alarm.toDate();
+    }
   }
 
   // Not reachable, but a function that returns a date should always do so.
@@ -56,6 +70,8 @@ export type ScheduleDay = {
   isWeekend: boolean;
   /** 0 = Sunday … 6 = Saturday. Use it to look up that day's wake time. */
   weekdayIndex: number;
+  /** The date itself, from `dayKeyOf`, to tell whether its alarm is paused. */
+  key: string;
 };
 
 /** The coming seven days, starting today. */
@@ -69,6 +85,7 @@ export function weekFrom(now: Date): ScheduleDay[] {
       dayOfMonth: date.format('DD'),
       isWeekend: weekday === 0 || weekday === 6,
       weekdayIndex: weekday,
+      key: date.format('YYYY-MM-DD'),
     };
   });
 }

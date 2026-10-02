@@ -85,6 +85,14 @@ const palette = {
     track: 'rgba(255,255,255,0.06)',
     trackFill: 'rgba(255,255,255,0.32)',
     homeBar: 'rgba(255,255,255,0.35)',
+    /**
+     * Cards on the app page, which sits on the same sky. Dark glass rather
+     * than white: the page scrolls past the bright horizon band, and white
+     * text on a white tint there would disappear.
+     */
+    card: 'rgba(10,6,4,0.52)',
+    /** Hairlines between sections, and the edge of a card. */
+    line: 'rgba(255,255,255,0.12)',
   },
 };
 

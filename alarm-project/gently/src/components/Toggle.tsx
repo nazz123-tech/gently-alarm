@@ -28,14 +28,15 @@ export function Toggle({ on, onChange, accessibilityLabel }: ToggleProps) {
         padding: 3,
         justifyContent: 'center',
         alignItems: on ? 'flex-end' : 'flex-start',
-        backgroundColor: on ? colors.line.strong : colors.line.soft,
+        backgroundColor: on ? colors.accent.base : colors.onSky.button,
       }}>
       <View
         style={{
           width: 22,
           height: 22,
           borderRadius: 11,
-          backgroundColor: on ? colors.ink.primary : colors.ink.muted,
+          backgroundColor: colors.onSky.text,
+          opacity: on ? 1 : 0.6,
         }}
       />
     </Pressable>

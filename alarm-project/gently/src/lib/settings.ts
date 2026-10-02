@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { SOUNDSCAPES } from '@/lib/soundscapes';
 
@@ -16,17 +16,24 @@ const DEFAULT_WAKE_MINUTES = 7 * 60 + 42; // 07:42
 /**
  * How long to wait after the last change before writing.
  *
- * Rolling the dial changes the time many times a second. Writing on every one
- * of those would hammer storage to save values that were true for a sixtieth
- * of a second. Each change cancels the pending write, so only the time the
- * dial actually settles on is stored.
+ * Dragging the level meter changes it many times a second. Writing on every
+ * one of those would hammer storage to save values that were true for a
+ * sixtieth of a second. Each change cancels the pending write, so only the
+ * value it actually settles on is stored.
  */
 const SAVE_DELAY_MS = 400;
 
 export type AlarmSettings = {
   /** One wake time per weekday, `0` = Sunday. */
   wakeTimes: number[];
-  paused: boolean;
+  /**
+   * The one alarm that is paused, named by its date (`dayKeyOf`), or null.
+   *
+   * Pausing is for the next alarm only, not the whole schedule: skip tomorrow
+   * and the day after still rings. Once that date has gone by this simply
+   * stops matching anything, so it never needs clearing.
+   */
+  skippedDay: string | null;
   soundscapeId: string;
   /** Soundscape level, 0–1. */
   level: number;
@@ -34,7 +41,7 @@ export type AlarmSettings = {
 
 export const DEFAULT_SETTINGS: AlarmSettings = {
   wakeTimes: Array.from({ length: 7 }, () => DEFAULT_WAKE_MINUTES),
-  paused: false,
+  skippedDay: null,
   soundscapeId: SOUNDSCAPES[0].id,
   level: 0.28,
 };
@@ -73,8 +80,71 @@ function sanitise(raw: unknown): AlarmSettings {
     wakeTimes,
     soundscapeId,
     level,
-    paused: typeof stored.paused === 'boolean' ? stored.paused : DEFAULT_SETTINGS.paused,
+    skippedDay:
+      typeof stored.skippedDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(stored.skippedDay)
+        ? stored.skippedDay
+        : DEFAULT_SETTINGS.skippedDay,
   };
+}
+
+/*
+ * One copy of the settings for the whole app.
+ *
+ * The app page and the edit screen are both on screen at once — one under the
+ * other — and the edit screen's Save has to show up on the page underneath
+ * straight away. With a copy per screen, the page would only find out on the
+ * next launch. So the settings live here, once, and every screen subscribes.
+ */
+
+let current: AlarmSettings = DEFAULT_SETTINGS;
+let loaded = false;
+let loadStarted = false;
+let pendingWrite: ReturnType<typeof setTimeout> | undefined;
+const listeners = new Set<() => void>();
+
+function notify() {
+  listeners.forEach((listener) => listener());
+}
+
+/** Read what was stored, once, the first time anything asks for the settings. */
+function load() {
+  if (loadStarted) return;
+  loadStarted = true;
+
+  AsyncStorage.getItem(STORAGE_KEY)
+    .then((stored) => {
+      if (stored) current = sanitise(JSON.parse(stored));
+    })
+    .catch(() => {
+      // Unreadable storage is not worth failing over — the defaults work.
+    })
+    .finally(() => {
+      loaded = true;
+      notify();
+    });
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  load();
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** Change one part of the settings, leaving the rest alone. */
+export function updateSettings(change: Partial<AlarmSettings>) {
+  current = { ...current, ...change };
+  notify();
+
+  // Nothing is written until the first read has finished, or the defaults
+  // would be saved over whatever was already there.
+  if (!loaded) return;
+
+  clearTimeout(pendingWrite);
+  pendingWrite = setTimeout(() => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(current)).catch(() => {});
+  }, SAVE_DELAY_MS);
 }
 
 /**
@@ -84,45 +154,8 @@ function sanitise(raw: unknown): AlarmSettings {
  * function to change any part of them.
  */
 export function useAlarmSettings() {
-  const [settings, setSettings] = useState<AlarmSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
+  const settings = useSyncExternalStore(subscribe, () => current);
+  const isLoaded = useSyncExternalStore(subscribe, () => loaded);
 
-  useEffect(() => {
-    let stillMounted = true;
-
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((stored) => {
-        if (!stillMounted) return;
-        if (stored) setSettings(sanitise(JSON.parse(stored)));
-      })
-      .catch(() => {
-        // Unreadable storage is not worth failing over — the defaults work.
-      })
-      .finally(() => {
-        if (stillMounted) setLoaded(true);
-      });
-
-    return () => {
-      stillMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    // Nothing is written until the first read has finished, or the defaults
-    // would be saved over whatever was already there.
-    if (!loaded) return;
-
-    const write = setTimeout(() => {
-      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings)).catch(() => {});
-    }, SAVE_DELAY_MS);
-
-    return () => clearTimeout(write);
-  }, [settings, loaded]);
-
-  /** Change one part of the settings, leaving the rest alone. */
-  function update(change: Partial<AlarmSettings>) {
-    setSettings((current) => ({ ...current, ...change }));
-  }
-
-  return { settings, loaded, update };
+  return { settings, loaded: isLoaded, update: updateSettings };
 }

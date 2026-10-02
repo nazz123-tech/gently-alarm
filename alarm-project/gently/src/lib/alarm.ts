@@ -100,7 +100,10 @@ export function describeScreen({
       return {
         label: 'Getting up in',
         clock: formatCountdown(secondsLeft),
-        clockSize: 'full',
+        // Whole minutes only, so the screen can sleep between them. Four
+        // characters at the small width are the same size as the seven of
+        // `h:mm:ss` at the full one.
+        clockSize: 'small',
         sub: [soundscapeName, windowLabel],
         sky: 'night',
         showTray: true,
@@ -111,11 +114,7 @@ export function describeScreen({
         label: 'Waking you gently',
         clock: alarmLabel,
         clockSize: 'small',
-        sub: [
-          soundscapeName,
-          `step ${windowStep} of ${windowStepCount}`,
-          `${windowLevelPercent}%`,
-        ],
+        sub: [soundscapeName, `step ${windowStep} of ${windowStepCount}`, `${windowLevelPercent}%`],
         sky: 'dawn',
         showTray: true,
       };

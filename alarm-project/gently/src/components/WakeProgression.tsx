@@ -1,5 +1,6 @@
 import { Text, View } from 'react-native';
 
+import { Card } from '@/components/Card';
 import { SectionHeader } from '@/components/SectionHeader';
 import { CYCLE_LENGTH, buildCycle } from '@/lib/cycle';
 import { findSoundscape } from '@/lib/soundscapes';
@@ -40,17 +41,17 @@ export function WakeProgression({
   const steps = buildCycle(wakeMinutes, windowMinutes, findSoundscape(soundscapeId));
 
   return (
-    <View>
+    <Card>
       <SectionHeader
         label="Wake progression"
         right={
-          <Text style={textStyles.capLabel} className="text-ink-muted">
+          <Text style={textStyles.capLabel} className="text-onSky-text/60">
             {dayLabel} · {windowMinutes} min
           </Text>
         }
       />
 
-      <View className="pb-6">
+      <View className="pb-2">
         {steps.map((step, index) => {
           const isWake = index === CYCLE_LENGTH - 1;
 
@@ -62,20 +63,20 @@ export function WakeProgression({
                   width: 28,
                   height: 28,
                   borderWidth: 1,
-                  borderColor: isWake ? colors.accent.base : colors.line.strong,
+                  borderColor: isWake ? colors.accent.base : colors.onSky.line,
                 }}>
                 <Text
                   style={textStyles.capLabel}
-                  className={isWake ? 'text-accent-base' : 'text-ink-muted'}>
+                  className={isWake ? 'text-accent-base' : 'text-onSky-text/60'}>
                   {step.number}
                 </Text>
               </View>
 
               <View className="flex-1">
-                <Text style={textStyles.body} className="text-ink-primary">
+                <Text style={textStyles.body} className="text-onSky-text">
                   {step.name}
                 </Text>
-                <Text style={textStyles.capLabel} className="text-ink-muted">
+                <Text style={textStyles.capLabel} className="text-onSky-text/60">
                   {step.detail}
                 </Text>
               </View>
@@ -83,13 +84,13 @@ export function WakeProgression({
               <View className="items-end gap-1.5">
                 <Text
                   style={textStyles.sub}
-                  className={isWake ? 'text-accent-base' : 'text-ink-primary'}>
+                  className={isWake ? 'text-accent-base' : 'text-onSky-text'}>
                   {step.at}
                 </Text>
 
                 <View className="flex-row items-center gap-2">
                   <LevelBar level={step.level} isWake={isWake} />
-                  <Text style={textStyles.capLabel} className="text-ink-muted">
+                  <Text style={textStyles.capLabel} className="text-onSky-text/60">
                     {String(step.level).padStart(3, ' ')}%
                   </Text>
                 </View>
@@ -98,7 +99,7 @@ export function WakeProgression({
           );
         })}
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -110,14 +111,14 @@ function LevelBar({ level, isWake }: { level: number; isWake: boolean }) {
         width: BAR_WIDTH,
         height: BAR_HEIGHT,
         borderRadius: BAR_HEIGHT / 2,
-        backgroundColor: colors.line.strong,
+        backgroundColor: colors.onSky.track,
         overflow: 'hidden',
       }}>
       <View
         style={{
           width: `${level}%`,
           height: '100%',
-          backgroundColor: isWake ? colors.accent.base : colors.ink.secondary,
+          backgroundColor: isWake ? colors.accent.base : colors.onSky.trackFill,
         }}
       />
     </View>

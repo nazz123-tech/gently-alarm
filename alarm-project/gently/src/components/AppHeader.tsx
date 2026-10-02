@@ -15,23 +15,25 @@ export const AppHeader = memo(function AppHeader({ armed }: { armed: boolean }) 
     <View className="flex-row items-center gap-3 pb-4">
       <View
         className="items-center justify-center rounded-full"
-        style={{ width: 34, height: 34, borderWidth: 1, borderColor: colors.line.strong }}>
-        <Text style={textStyles.eyebrow} className="text-ink-secondary">
+        style={{ width: 34, height: 34, borderWidth: 1, borderColor: colors.onSky.line }}>
+        <Text style={textStyles.eyebrow} className="text-onSky-text/80">
           G
         </Text>
       </View>
 
       <View className="flex-1">
-        <Text style={textStyles.eyebrow} className="text-ink-primary">
+        <Text style={textStyles.eyebrow} className="text-onSky-text">
           Gently
         </Text>
-        <Text style={textStyles.capLabel} className="text-ink-muted">
+        <Text style={textStyles.capLabel} className="text-onSky-text/60">
           Gradual awakening
         </Text>
       </View>
 
-      <View className="rounded-lg px-2 py-1" style={{ borderWidth: 1, borderColor: colors.line.strong }}>
-        <Text style={textStyles.capLabel} className="text-ink-secondary">
+      <View
+        className="rounded-lg px-2 py-1"
+        style={{ borderWidth: 1, borderColor: colors.onSky.line }}>
+        <Text style={textStyles.capLabel} className="text-onSky-text/80">
           24h
         </Text>
       </View>
@@ -41,7 +43,7 @@ export const AppHeader = memo(function AppHeader({ armed }: { armed: boolean }) 
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: armed ? colors.accent.base : colors.line.strong,
+          backgroundColor: armed ? colors.accent.base : colors.onSky.line,
         }}
       />
     </View>

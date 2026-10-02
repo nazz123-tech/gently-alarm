@@ -8,17 +8,20 @@
 const pad = (value: number) => String(value).padStart(2, '0');
 
 /**
- * Seconds until the alarm, as `h:mm:ss` — the prototype's `hms()`.
- * The hour is not padded, so it reads `9:01:01`, not `09:01:01`.
+ * Time until the alarm, as `h:mm`. The hour is not padded, so it reads `9:01`.
+ *
+ * Whole minutes, rounded up: with 7h 11m 30s to go it reads `7:12`, and the
+ * last minute reads `0:01` rather than an alarm-shaped `0:00`. The prototype
+ * showed seconds too, but this screen stays on all night, and seconds meant
+ * redrawing it twice a second for eight hours.
  */
 export function formatCountdown(totalSeconds: number): string {
-  const safe = Math.max(0, Math.floor(totalSeconds));
+  const totalMinutes = Math.max(0, Math.ceil(totalSeconds / 60));
 
-  const hours = Math.floor(safe / 3600);
-  const minutes = Math.floor((safe % 3600) / 60);
-  const seconds = safe % 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-  return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+  return `${hours}:${pad(minutes)}`;
 }
 
 /** A wall-clock time as `h:mm` — the prototype's `clock()`. */
